@@ -324,6 +324,16 @@
       opacity: 0.85;
     }
 
+    .weapon-ammo.low {
+      color: #fbbf24;
+      opacity: 1;
+    }
+
+    .weapon-ammo.empty {
+      color: #fb7185;
+      opacity: 1;
+    }
+
     /* Tactical Ability Buttons (Grenade & Nova Blast) */
     .ability-row {
       display: flex;
@@ -1119,6 +1129,9 @@
           damage: 21,
           fireRate: 7.4,
           magSize: 30,
+          startReserve: 120,
+          maxReserve: 270,
+          crateAmmo: 60,
           reloadTime: 1.15,
           bulletSpeed: 900,
           pellets: 1,
@@ -1144,6 +1157,9 @@
           damage: 16,
           fireRate: 1.38,
           magSize: 8,
+          startReserve: 32,
+          maxReserve: 72,
+          crateAmmo: 16,
           reloadTime: 1.45,
           bulletSpeed: 780,
           pellets: 6,
@@ -1169,6 +1185,9 @@
           damage: 14,
           fireRate: 14.5,
           magSize: 48,
+          startReserve: 192,
+          maxReserve: 432,
+          crateAmmo: 96,
           reloadTime: 1.05,
           bulletSpeed: 840,
           pellets: 1,
@@ -1195,6 +1214,9 @@
           damage: 98,
           fireRate: 1.15,
           magSize: 6,
+          startReserve: 24,
+          maxReserve: 54,
+          crateAmmo: 12,
           reloadTime: 1.55,
           bulletSpeed: 1550,
           pellets: 1,
@@ -1221,6 +1243,9 @@
           damage: 40,
           fireRate: 5.2,
           magSize: 24,
+          startReserve: 96,
+          maxReserve: 216,
+          crateAmmo: 48,
           reloadTime: 1.3,
           bulletSpeed: 720,
           pellets: 1,
@@ -1247,6 +1272,9 @@
           damage: 145,
           fireRate: 0.85,
           magSize: 4,
+          startReserve: 12,
+          maxReserve: 32,
+          crateAmmo: 6,
           reloadTime: 1.85,
           bulletSpeed: 540,
           pellets: 1,
@@ -1555,6 +1583,20 @@
           this._tone('sine', 380, 520, 0.06, 0.07, t);
         }
 
+        playAmmoPickup() {
+          if (!this._canPlay()) return;
+          const t = this.ctx.currentTime;
+          this._tone('triangle', 420, 620, 0.07, 0.12, t);
+          this._tone('triangle', 620, 930, 0.1, 0.12, t + 0.065);
+          this._tone('sine', 930, 1240, 0.11, 0.09, t + 0.12);
+        }
+
+        playEmpty() {
+          if (!this._canPlay()) return;
+          const t = this.ctx.currentTime;
+          this._tone('square', 190, 110, 0.035, 0.07, t);
+        }
+
         playWaveClear() {
           if (!this._canPlay()) return;
           const t = this.ctx.currentTime;
@@ -1718,6 +1760,9 @@
       let shockwaves = [];
       let floatingTexts = [];
       let coins = [];
+      let ammoCrates = [];
+      let ammoCrateTimer = 0;
+      let emptyClickTimer = 0;
       let casings = [];
       let tracers = [];
 
@@ -1734,6 +1779,16 @@
       // ============================================================
       function clamp(v, min, max) {
         return v < min ? min : v > max ? max : v;
+      }
+
+      function drawRoundedRect(x, y, w, h, r) {
+        if (ctx.roundRect) {
+          ctx.beginPath();
+          ctx.roundRect(x, y, w, h, r);
+        } else {
+          ctx.beginPath();
+          ctx.rect(x, y, w, h);
+        }
       }
 
       function rand(min, max) {
@@ -1802,7 +1857,8 @@
           weaponStates[def.id] = {
             owned: !!def.startOwned,
             level: 1,
-            ammo: def.magSize
+            ammo: def.magSize,
+            reserve: def.startReserve
           };
         }
 
@@ -1840,8 +1896,15 @@
         shockwaves = [];
         floatingTexts = [];
         coins = [];
+        ammoCrates = [];
+        ammoCrateTimer = 11;
+        emptyClickTimer = 0;
         casings = [];
         tracers = [];
+
+        // Spawn 2 initial ammo crates in the arena
+        spawnAmmoCrate('rifle');
+        spawnAmmoCrate('shotgun');
 
         clearInputs();
         startWave(1);
@@ -2019,10 +2082,86 @@
         switchWeapon(next);
       }
 
+      function spawnAmmoCrate(preferredWeaponId = null, nearPlayer = false) {
+        const ownedDefs = WEAPON_DEFS.filter((w) => weaponStates[w.id] && weaponStates[w.id].owned);
+        if (ownedDefs.length === 0) return;
+
+        let weaponId = preferredWeaponId;
+        if (!weaponId) {
+          // 35% chance for a universal ALL AMMO crate, 65% for a specific owned weapon
+          if (Math.random() < 0.35) {
+            weaponId = 'all';
+          } else {
+            // Weight toward owned weapons that are lower on ammo
+            const weights = ownedDefs.map((def) => {
+              const st = weaponStates[def.id];
+              const ratio = (st.ammo + st.reserve) / (def.magSize + def.maxReserve);
+              return Math.max(0.25, 1.35 - ratio);
+            });
+            const totalW = weights.reduce((a, b) => a + b, 0);
+            let pick = Math.random() * totalW;
+            weaponId = ownedDefs[0].id;
+            for (let i = 0; i < ownedDefs.length; i++) {
+              pick -= weights[i];
+              if (pick <= 0) {
+                weaponId = ownedDefs[i].id;
+                break;
+              }
+            }
+          }
+        }
+
+        let cx = WORLD_W / 2;
+        let cy = WORLD_H / 2;
+        for (let tries = 0; tries < 30; tries++) {
+          if (nearPlayer && player) {
+            const a = rand(0, Math.PI * 2);
+            const d = rand(120, 230);
+            cx = clamp(player.x + Math.cos(a) * d, 90, WORLD_W - 90);
+            cy = clamp(player.y + Math.sin(a) * d, 90, WORLD_H - 90);
+          } else {
+            cx = rand(110, WORLD_W - 110);
+            cy = rand(110, WORLD_H - 110);
+          }
+
+          if (!nearPlayer && player && distSq(cx, cy, player.x, player.y) < 150 * 150) continue;
+
+          let blocked = false;
+          for (const ob of OBSTACLES) {
+            if (distSq(cx, cy, ob.x, ob.y) < (ob.r + 42) * (ob.r + 42)) {
+              blocked = true;
+              break;
+            }
+          }
+          if (!blocked) {
+            for (const other of ammoCrates) {
+              if (distSq(cx, cy, other.x, other.y) < 110 * 110) {
+                blocked = true;
+                break;
+              }
+            }
+          }
+          if (!blocked) break;
+        }
+
+        const isAll = weaponId === 'all';
+        const def = isAll ? null : getWeaponDef(weaponId);
+        ammoCrates.push({
+          x: cx,
+          y: cy,
+          r: 18,
+          weaponId,
+          label: isAll ? 'ALL AMMO' : def.name.toUpperCase(),
+          color: isAll ? '#fbbf24' : def.color,
+          pulse: rand(0, Math.PI * 2),
+          life: 45
+        });
+      }
+
       function triggerReload() {
         const st = weaponStates[player.weaponId];
         const stats = getEffectiveWeaponStats(player.weaponId);
-        if (player.reloading || st.ammo >= stats.magSize) return;
+        if (player.reloading || st.ammo >= stats.magSize || st.reserve <= 0) return;
         player.reloading = true;
         player.reloadDuration = stats.reloadTime;
         player.reloadTimer = stats.reloadTime;
@@ -2035,7 +2174,13 @@
         const stats = getEffectiveWeaponStats(player.weaponId);
 
         if (st.ammo <= 0) {
-          triggerReload();
+          if (st.reserve > 0) {
+            triggerReload();
+          } else if (emptyClickTimer <= 0) {
+            emptyClickTimer = 0.45;
+            sound.playEmpty();
+            spawnFloatingText(player.x, player.y - 18, 'NO AMMO!', '#fb7185');
+          }
           return;
         }
 
@@ -2294,6 +2439,7 @@
               money -= def.cost;
               st.owned = true;
               st.ammo = def.magSize;
+              st.reserve = def.startReserve;
               player.weaponId = def.id;
               player.reloading = false;
               sound.playBuy();
@@ -2327,6 +2473,7 @@
                 money -= upgCost;
                 st.level++;
                 st.ammo = def.magSize;
+                st.reserve = Math.min(def.maxReserve, st.reserve + def.crateAmmo);
                 sound.playBuy();
                 rebuildWeaponBar();
                 syncHud();
@@ -2360,12 +2507,14 @@
           btn.className = 'weapon-pill' + (player.weaponId === def.id ? ' active' : '');
           btn.style.setProperty('--w-color', def.color);
           btn.dataset.weaponId = def.id;
+          const totalLeft = st.ammo + st.reserve;
+          const ammoClass = totalLeft <= 0 ? ' empty' : totalLeft <= def.magSize ? ' low' : '';
           btn.innerHTML = `
             <div class="weapon-pill-top">
               <span class="weapon-dot"></span>
               <span>${def.name}</span>
             </div>
-            <div class="weapon-ammo">${st.ammo}/${def.magSize}</div>
+            <div class="weapon-ammo${ammoClass}">${st.ammo}/${st.reserve}</div>
           `;
           const capturedId = def.id;
           btn.addEventListener('pointerdown', (e) => {
@@ -2386,7 +2535,12 @@
           const def = getWeaponDef(id);
           if (!st) continue;
           const ammoEl = pill.querySelector('.weapon-ammo');
-          if (ammoEl) ammoEl.textContent = `${st.ammo}/${def.magSize}`;
+          if (ammoEl) {
+            const totalLeft = st.ammo + st.reserve;
+            ammoEl.textContent = `${st.ammo}/${st.reserve}`;
+            ammoEl.classList.toggle('empty', totalLeft <= 0);
+            ammoEl.classList.toggle('low', totalLeft > 0 && totalLeft <= def.magSize);
+          }
           pill.classList.toggle('active', player.weaponId === id);
         }
       }
@@ -2617,6 +2771,7 @@
         if (hurtFlash > 0) hurtFlash = Math.max(0, hurtFlash - dt * 1.4);
         if (novaFlash > 0) novaFlash = Math.max(0, novaFlash - dt * 1.6);
         if (novaCooldown > 0) novaCooldown = Math.max(0, novaCooldown - dt);
+        if (emptyClickTimer > 0) emptyClickTimer = Math.max(0, emptyClickTimer - dt);
         if (player.grenadeCooldown > 0) player.grenadeCooldown = Math.max(0, player.grenadeCooldown - dt);
         updateAbilityHud();
 
@@ -2678,7 +2833,11 @@
           if (player.reloadTimer <= 0) {
             player.reloading = false;
             const def = getWeaponDef(player.weaponId);
-            weaponStates[player.weaponId].ammo = def.magSize;
+            const st = weaponStates[player.weaponId];
+            const needed = def.magSize - st.ammo;
+            const loaded = Math.min(needed, st.reserve);
+            st.ammo += loaded;
+            st.reserve -= loaded;
             reloadBarWrap.classList.remove('active');
             updateWeaponBarAmmo();
           }
@@ -3109,6 +3268,81 @@
             b.rustle = Math.min(1, b.rustle + dt * 6);
           }
         }
+
+        // --- Ammo Crates (spawn & pickup) ---
+        ammoCrateTimer -= dt;
+        if (ammoCrateTimer <= 0) {
+          if (ammoCrates.length < 4) {
+            spawnAmmoCrate();
+          }
+          ammoCrateTimer = 12;
+        }
+
+        // Emergency safeguard: if all owned weapons are out of ammo and no crate exists, drop one nearby
+        let totalOwnedAmmo = 0;
+        for (const def of WEAPON_DEFS) {
+          const st = weaponStates[def.id];
+          if (st && st.owned) totalOwnedAmmo += st.ammo + st.reserve;
+        }
+        if (totalOwnedAmmo <= 0 && ammoCrates.length === 0) {
+          spawnAmmoCrate('all', true);
+        }
+
+        for (let i = ammoCrates.length - 1; i >= 0; i--) {
+          const crate = ammoCrates[i];
+          crate.pulse += dt * 4.2;
+          crate.life -= dt;
+
+          const pickupR = player.r + crate.r + 8;
+          if (distSq(player.x, player.y, crate.x, crate.y) <= pickupR * pickupR) {
+            let gainedText = '';
+            if (crate.weaponId === 'all') {
+              for (const def of WEAPON_DEFS) {
+                const st = weaponStates[def.id];
+                if (!st || !st.owned) continue;
+                const bonus = Math.max(1, Math.round(def.crateAmmo * 0.65));
+                st.reserve = Math.min(def.maxReserve, st.reserve + bonus);
+              }
+              gainedText = '+AMMO ALL WEAPONS!';
+            } else {
+              const def = getWeaponDef(crate.weaponId);
+              const st = weaponStates[crate.weaponId];
+              if (st && st.owned) {
+                const before = st.reserve;
+                st.reserve = Math.min(def.maxReserve, st.reserve + def.crateAmmo);
+                const added = st.reserve - before;
+                gainedText = added > 0 ? `+${added} ${def.name.toUpperCase()} AMMO` : `${def.name.toUpperCase()} FULL`;
+              }
+            }
+
+            sound.playAmmoPickup();
+            spawnBurst(crate.x, crate.y, crate.color, 16, 60, 210, 4);
+            shockwaves.push({
+              x: crate.x,
+              y: crate.y,
+              r: 10,
+              maxR: 52,
+              color: crate.color,
+              life: 0.24,
+              maxLife: 0.24
+            });
+            if (gainedText) spawnFloatingText(crate.x, crate.y - 14, gainedText, crate.color);
+
+            // Auto-reload current weapon if it was empty and now has reserve
+            const curSt = weaponStates[player.weaponId];
+            if (curSt && curSt.ammo <= 0 && curSt.reserve > 0 && !player.reloading) {
+              triggerReload();
+            }
+
+            ammoCrates.splice(i, 1);
+            updateWeaponBarAmmo();
+            continue;
+          }
+
+          if (crate.life <= 0) {
+            ammoCrates.splice(i, 1);
+          }
+        }
       }
 
       // ============================================================
@@ -3133,6 +3367,7 @@
         drawArenaFloor();
         drawCasings();
         drawCoins();
+        drawAmmoCrates();
         drawBushes();
         drawObstacles();
         drawTracers();
@@ -3209,6 +3444,72 @@
         ctx.strokeStyle = '#475569';
         ctx.lineWidth = 4;
         ctx.strokeRect(10, 10, WORLD_W - 20, WORLD_H - 20);
+      }
+
+      function drawAmmoCrates() {
+        for (const crate of ammoCrates) {
+          const bob = Math.sin(crate.pulse) * 2.5;
+          const blink = crate.life < 6 && Math.sin(crate.life * 16) < 0 ? 0.35 : 1;
+
+          ctx.save();
+          ctx.globalAlpha = blink;
+          ctx.translate(crate.x, crate.y);
+
+          // Glowing ground beacon ring
+          const ringR = crate.r + 7 + Math.sin(crate.pulse) * 3;
+          ctx.strokeStyle = crate.color;
+          ctx.globalAlpha = blink * 0.42;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(0, 0, ringR, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.globalAlpha = blink;
+          // Ground shadow
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
+          ctx.beginPath();
+          ctx.ellipse(0, 10, 17, 7, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Crate body (military chest)
+          ctx.translate(0, bob);
+          const w = 30;
+          const h = 22;
+
+          // Base chest box
+          ctx.fillStyle = '#3f4f33';
+          ctx.strokeStyle = '#1a2414';
+          ctx.lineWidth = 2;
+          drawRoundedRect(-w / 2, -h / 2, w, h, 4);
+          ctx.fill();
+          ctx.stroke();
+
+          // Chest lid top highlight
+          ctx.fillStyle = '#536843';
+          ctx.fillRect(-w / 2 + 2, -h / 2 + 2, w - 4, 6);
+
+          // Weapon-colored trim stripe
+          ctx.fillStyle = crate.color;
+          ctx.fillRect(-w / 2 + 2, -2, w - 4, 5);
+
+          // Brass metal clasps
+          ctx.fillStyle = '#fbbf24';
+          ctx.fillRect(-10, -4, 4, 8);
+          ctx.fillRect(6, -4, 4, 8);
+
+          // Label pill under crate
+          ctx.font = '800 9px -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          const textW = ctx.measureText(crate.label).width + 10;
+          ctx.fillStyle = 'rgba(8, 13, 26, 0.84)';
+          drawRoundedRect(-textW / 2, h / 2 + 4, textW, 13, 5);
+          ctx.fill();
+          ctx.fillStyle = crate.color;
+          ctx.fillText(crate.label, 0, h / 2 + 10.5);
+
+          ctx.restore();
+        }
       }
 
       function drawBushes() {
@@ -3766,6 +4067,29 @@
           ctx.lineTo(-5, -5);
           ctx.closePath();
           ctx.fill();
+          ctx.restore();
+        }
+
+        // Offscreen Ammo Crate indicators
+        for (const crate of ammoCrates) {
+          const sx = (crate.x - camera.x) * camZoom + viewW / 2;
+          const sy = (crate.y - camera.y) * camZoom + viewH / 2;
+          if (sx >= 12 && sx <= viewW - 12 && sy >= 12 && sy <= viewH - 12) continue;
+
+          const ix = clamp(sx, pad, viewW - pad);
+          const iy = clamp(sy, 68, viewH - 86);
+
+          ctx.save();
+          ctx.translate(ix, iy);
+          ctx.fillStyle = 'rgba(8, 13, 26, 0.85)';
+          ctx.strokeStyle = crate.color;
+          ctx.lineWidth = 2;
+          drawRoundedRect(-9, -7, 18, 14, 3);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = crate.color;
+          ctx.fillRect(-6, -1.5, 12, 3);
           ctx.restore();
         }
       }
