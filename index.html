@@ -833,7 +833,7 @@
           </div>
         </div>
         <div class="pill">
-          <span id="moneyText" class="stat-money">$0</span>
+          <span id="moneyText" class="stat-money">0 coins</span>
         </div>
       </div>
 
@@ -872,7 +872,7 @@
     <div class="card">
       <div class="title-tag">Top-Down Arena Shooter</div>
       <h1 class="game-title">NEON STRIKE</h1>
-      <p class="subtitle">Survive relentless waves with <strong>100 HP</strong>. Start armed with a <strong>Rifle</strong> &amp; <strong>Shotgun</strong>, collect cash, and unlock heavy firepower.</p>
+      <p class="subtitle">Survive relentless waves with <strong>100 HP</strong>. Start armed with a <strong>Rifle</strong> &amp; <strong>Shotgun</strong>, earn <strong>5 coins per kill</strong>, and unlock heavy firepower.</p>
       <div class="controls-box">
         <div class="control-row">
           <span class="control-badge">Touch</span>
@@ -923,7 +923,7 @@
         <div class="shop-title-wrap">
           <h3 class="shop-title">WEAPON SHOP</h3>
           <div class="shop-meta">
-            <span id="shopMoney" class="shop-money">$0</span>
+            <span id="shopMoney" class="shop-money">0 coins</span>
             <span id="shopHp" class="shop-hp">HP 100/100</span>
           </div>
         </div>
@@ -935,7 +935,7 @@
             <h4>Field Medkit (+40 HP)</h4>
             <p>Patch up your armor up to 100 max health.</p>
           </div>
-          <button id="buyMedkitBtn" class="btn-sm btn-heal" type="button">HEAL $60</button>
+          <button id="buyMedkitBtn" class="btn-sm btn-heal" type="button">HEAL 35 coins</button>
         </div>
         <div id="shopGrid" class="shop-grid"></div>
       </div>
@@ -955,7 +955,8 @@
       const WORLD_W = 1680;
       const WORLD_H = 1200;
       const MAX_HP = 100;
-      const MEDKIT_COST = 60;
+      const COINS_PER_KILL = 5;
+      const MEDKIT_COST = 35;
       const MEDKIT_HEAL = 40;
 
       const WEAPON_DEFS = [
@@ -1014,7 +1015,7 @@
           name: 'Dual SMG',
           fullName: 'Twin Vector SMGs',
           desc: 'Blistering twin-barrel fire rate built for shredding swarms.',
-          cost: 110,
+          cost: 60,
           startOwned: false,
           color: '#34d399',
           damage: 14,
@@ -1040,7 +1041,7 @@
           name: 'Railgun',
           fullName: 'Piercing Rail Sniper',
           desc: 'Hyper-velocity slug that pierces up to 4 targets in a line.',
-          cost: 220,
+          cost: 120,
           startOwned: false,
           color: '#c084fc',
           damage: 98,
@@ -1066,7 +1067,7 @@
           name: 'Plasma',
           fullName: 'Plasma Pulse Rifle',
           desc: 'High-energy plasma bolts with glowing impact splash damage.',
-          cost: 360,
+          cost: 200,
           startOwned: false,
           color: '#22d3ee',
           damage: 40,
@@ -1092,7 +1093,7 @@
           name: 'Rocket',
           fullName: 'Apex Rocket Launcher',
           desc: 'Explosive warheads delivering massive area blast and shockwaves.',
-          cost: 520,
+          cost: 300,
           startOwned: false,
           color: '#fb7185',
           damage: 145,
@@ -1448,7 +1449,7 @@
       }
 
       function getUpgradeCost(def, currentLevel) {
-        return Math.round((def.cost * 0.45 + 90) * currentLevel);
+        return Math.round((def.cost * 0.4 + 45) * currentLevel);
       }
 
       function showBanner(text, duration = 2.1) {
@@ -1819,12 +1820,12 @@
       }
 
       function renderShop() {
-        shopMoneyEl.textContent = '$' + money.toLocaleString();
+        shopMoneyEl.textContent = `${money.toLocaleString()} coins`;
         shopHpEl.textContent = `HP ${Math.ceil(player.hp)}/${MAX_HP}`;
 
         const needHeal = player.hp < MAX_HP;
         buyMedkitBtn.disabled = !needHeal || money < MEDKIT_COST;
-        buyMedkitBtn.textContent = needHeal ? `HEAL $${MEDKIT_COST}` : 'FULL HP';
+        buyMedkitBtn.textContent = needHeal ? `HEAL ${MEDKIT_COST} coins` : 'FULL HP';
 
         shopGridEl.innerHTML = '';
         for (const def of WEAPON_DEFS) {
@@ -1869,7 +1870,7 @@
             const buyBtn = document.createElement('button');
             buyBtn.type = 'button';
             buyBtn.className = 'btn-sm btn-buy';
-            buyBtn.textContent = `BUY $${def.cost}`;
+            buyBtn.textContent = `BUY ${def.cost} coins`;
             buyBtn.disabled = money < def.cost;
             buyBtn.addEventListener('click', () => {
               if (money < def.cost) return;
@@ -1902,7 +1903,7 @@
             upgBtn.type = 'button';
             upgBtn.className = 'btn-sm btn-upgrade';
             if (canUpgrade) {
-              upgBtn.textContent = `UPG $${upgCost}`;
+              upgBtn.textContent = `UPG ${upgCost}c`;
               upgBtn.disabled = money < upgCost;
               upgBtn.addEventListener('click', () => {
                 if (money < upgCost || st.level >= 3) return;
@@ -1982,7 +1983,7 @@
         if (player.hp <= 28) hpFillEl.classList.add('low');
         else if (player.hp <= 55) hpFillEl.classList.add('mid');
 
-        moneyTextEl.textContent = '$' + money.toLocaleString();
+        moneyTextEl.textContent = `${money.toLocaleString()} coins`;
         waveTextEl.textContent = `WAVE ${wave}`;
         scoreTextEl.textContent = score.toLocaleString();
         shopBtn.classList.toggle('can-buy', canAffordAnything());
@@ -2063,8 +2064,10 @@
 
         if (e.hp <= 0) {
           kills++;
+          money += COINS_PER_KILL;
           score += e.scoreVal;
           sound.playKill();
+          sound.playCoin();
           spawnBurst(e.x, e.y, e.color, e.type === 'boss' ? 32 : 14, 70, 270, e.type === 'boss' ? 5.5 : 4);
           shockwaves.push({
             x: e.x,
@@ -2075,24 +2078,7 @@
             life: 0.22,
             maxLife: 0.22
           });
-
-          // Drop collectible coins (split into 1-5 glowing coins)
-          const coinCount = e.type === 'boss' ? 6 : e.type === 'bruiser' ? 2 : 1;
-          const perCoin = Math.max(5, Math.round(e.reward / coinCount));
-          for (let c = 0; c < coinCount; c++) {
-            const ca = rand(0, Math.PI * 2);
-            const csp = rand(40, 120);
-            coins.push({
-              x: e.x,
-              y: e.y,
-              vx: Math.cos(ca) * csp,
-              vy: Math.sin(ca) * csp,
-              value: perCoin,
-              r: 8,
-              life: 14,
-              pulse: rand(0, Math.PI * 2)
-            });
-          }
+          spawnFloatingText(e.x, e.y, `+${COINS_PER_KILL} coins`, '#fbbf24');
 
           enemies.splice(index, 1);
           syncHud();
@@ -2296,11 +2282,9 @@
             waveSpawnTimer = Math.max(0.28, 1.15 - wave * 0.075);
           }
         } else if (enemies.length === 0) {
-          const bonus = 30 + wave * 12;
-          money += bonus;
           score += 100 * wave;
           sound.playWaveClear();
-          showBanner(`WAVE ${wave} CLEAR! +$${bonus}`, 2.4);
+          showBanner(`WAVE ${wave} CLEAR!`, 2.4);
           waveBreakTimer = 2.6;
           syncHud();
         }
