@@ -2144,11 +2144,12 @@
       // Skicka in poäng till Google Sheets Web App
       async function sparaPoang(spelarnamn, poang) {
         try {
-          await fetch(SCRIPT_URL, {
+          const response = await fetch(SCRIPT_URL, {
             method: "POST",
             headers: { "Content-Type": "text/plain;charset=utf-8" },
             body: JSON.stringify({ name: spelarnamn, score: poang })
           });
+          await response.text().catch(() => {});
           return true;
         } catch (error) {
           console.error("Kunde inte spara poäng:", error);
@@ -2156,10 +2157,11 @@
         }
       }
 
-      // Hämta topp 10 från Google Sheets Web App
+      // Hämta topp 10 från Google Sheets Web App (alltid färsk, ej cachad)
       async function hamtaTopplista() {
         try {
-          const response = await fetch(SCRIPT_URL);
+          const url = SCRIPT_URL + (SCRIPT_URL.includes('?') ? '&' : '?') + 't=' + Date.now();
+          const response = await fetch(url, { cache: 'no-store' });
           if (!response.ok) return null;
           const topplista = await response.json();
           if (!Array.isArray(topplista)) return null;
@@ -2269,16 +2271,33 @@
         }
       }
 
-      async function refreshOnlineLeaderboard(highlightMatch = null) {
-        startLbStatusEl.textContent = 'Laddar...';
+      async function refreshOnlineLeaderboard(highlightMatch = null, recentRun = null) {
+        startLbStatusEl.textContent = 'Uppdaterar...';
+        if (gameState === 'GAMEOVER') {
+          gameOverLbStatusEl.textContent = 'Uppdaterar...';
+        }
         const online = await hamtaTopplista();
         if (online) {
-          leaderboard = online
-            .map((e) => ({
-              name: String(e.name || 'Player').slice(0, 16),
-              score: parseScore(e.score),
-              wave: e.wave ? Number(e.wave) : null
-            }))
+          let merged = online.map((e) => ({
+            name: String(e.name || 'Player').slice(0, 16),
+            score: parseScore(e.score),
+            wave: e.wave ? Number(e.wave) : null
+          }));
+          // Säkerställ att rundan som precis spelades finns med om Google Sheet inte hunnit indexera den ännu
+          if (recentRun) {
+            const exists = merged.some(
+              (e) => e.name.toLowerCase() === recentRun.name.toLowerCase() && e.score === recentRun.score
+            );
+            if (!exists) {
+              merged.push({
+                id: recentRun.id,
+                name: recentRun.name,
+                score: recentRun.score,
+                wave: recentRun.wave
+              });
+            }
+          }
+          leaderboard = merged
             .sort((a, b) => b.score - a.score)
             .slice(0, 10);
           saveLeaderboard(leaderboard);
@@ -2289,9 +2308,7 @@
           gameOverLbStatusEl.textContent = 'Lokal Top 10';
         }
         renderLeaderboard(startLeaderboardEl, { nameOnly: (playerNameInput.value || playerName).trim() });
-        if (gameState === 'GAMEOVER') {
-          renderLeaderboard(gameOverLeaderboardEl, highlightMatch);
-        }
+        renderLeaderboard(gameOverLeaderboardEl, highlightMatch);
       }
 
       syncStartLeaderboardVisibility();
@@ -3288,12 +3305,11 @@
         renderLeaderboard(gameOverLeaderboardEl, highlightMatch);
         gameOverLbStatusEl.textContent = 'Sparar...';
 
-        // Skicka poängen till Google Sheet och uppdatera global topplista
-        const runName = playerName;
-        const runScore = score;
-        sparaPoang(runName, runScore).then((ok) => {
+        // Skicka poängen till Google Sheet och uppdatera alltid topp 10-listan efter varje runda
+        const recentRun = { id: entryId, name: playerName, score: parseScore(score), wave };
+        sparaPoang(recentRun.name, recentRun.score).then((ok) => {
           if (ok) {
-            refreshOnlineLeaderboard(highlightMatch);
+            refreshOnlineLeaderboard(highlightMatch, recentRun);
           } else {
             gameOverLbStatusEl.textContent = 'Lokal Top 10';
           }
