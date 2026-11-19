@@ -1879,7 +1879,7 @@
           vx: 0,
           vy: 0,
           r: 17,
-          speed: 275,
+          speed: 290,
           angle: 0,
           hp: MAX_HP,
           maxHp: MAX_HP,
@@ -3006,6 +3006,7 @@
         for (let i = 0; i < enemies.length; i++) {
           const e = enemies[i];
           if (e.hitFlash > 0) e.hitFlash -= dt;
+          if (e.attackCooldown > 0) e.attackCooldown = Math.max(0, e.attackCooldown - dt);
 
           const dx = player.x - e.x;
           const dy = player.y - e.y;
@@ -3014,7 +3015,7 @@
           const dirY = dy / dist;
           e.angle = Math.atan2(dy, dx);
 
-          let moveFactor = 1;
+          let moveFactor = e.attackCooldown > 0 ? 0.22 : 1;
           if (e.type === 'shooter') {
             if (dist < 220) moveFactor = -0.5;
             else if (dist < 300) moveFactor = 0.15;
@@ -3091,18 +3092,52 @@
             }
           }
 
-          const desiredVx = dirX * e.speed * moveFactor + sepX + avoidX;
-          const desiredVy = dirY * e.speed * moveFactor + sepY + avoidY;
+          let desiredVx = dirX * e.speed * moveFactor + sepX + avoidX;
+          let desiredVy = dirY * e.speed * moveFactor + sepY + avoidY;
+          // Cap steering velocity so crowds cannot slingshot a monster faster than player speed
+          const maxSteerSpeed = Math.min(e.speed * 1.12, player.speed * 0.84);
+          const desiredMag = Math.hypot(desiredVx, desiredVy);
+          if (desiredMag > maxSteerSpeed) {
+            desiredVx = (desiredVx / desiredMag) * maxSteerSpeed;
+            desiredVy = (desiredVy / desiredMag) * maxSteerSpeed;
+          }
+
           e.vx += (desiredVx - e.vx) * Math.min(1, 8 * dt);
           e.vy += (desiredVy - e.vy) * Math.min(1, 8 * dt);
           e.x += e.vx * dt;
           e.y += e.vy * dt;
           resolveObstacles(e);
 
-          // Melee contact with player
-          const touchR = e.r + player.r - 2;
-          if (distSq(e.x, e.y, player.x, player.y) <= touchR * touchR) {
-            damagePlayer(e.damage, dirX * 220, dirY * 220);
+          // Hard separation & melee contact so monsters never clip into or stick on the player
+          const pdx = player.x - e.x;
+          const pdy = player.y - e.y;
+          const minContactDist = e.r + player.r;
+          const pd2 = pdx * pdx + pdy * pdy;
+          if (pd2 < minContactDist * minContactDist) {
+            const pd = Math.sqrt(pd2) || 0.001;
+            const nx = pdx / pd;
+            const ny = pdy / pd;
+            const overlap = minContactDist - pd;
+
+            // Push monster completely outside player's hitbox
+            e.x -= nx * (overlap + 1);
+            e.y -= ny * (overlap + 1);
+            resolveObstacles(e);
+
+            // Cancel any velocity pushing into the player
+            const intoPlayer = e.vx * nx + e.vy * ny;
+            if (intoPlayer > 0) {
+              e.vx -= nx * intoPlayer;
+              e.vy -= ny * intoPlayer;
+            }
+
+            if (!e.attackCooldown || e.attackCooldown <= 0) {
+              damagePlayer(e.damage, nx * 165, ny * 165);
+              // Bounce the monster back with a brief recovery pause so you can cleanly run away
+              e.vx = -nx * 195;
+              e.vy = -ny * 195;
+              e.attackCooldown = 0.48;
+            }
           }
         }
 
