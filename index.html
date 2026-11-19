@@ -1223,7 +1223,7 @@
       <div class="leaderboard-box">
         <div class="lb-title">
           <span>Leaderboard</span>
-          <span>Top 10</span>
+          <span id="startLbStatus">Laddar...</span>
         </div>
         <div id="startLeaderboard" class="lb-list"></div>
       </div>
@@ -1259,7 +1259,7 @@
       <div class="leaderboard-box">
         <div class="lb-title">
           <span>Leaderboard</span>
-          <span>Top 10</span>
+          <span id="gameOverLbStatus">Sparar...</span>
         </div>
         <div id="gameOverLeaderboard" class="lb-list"></div>
       </div>
@@ -1314,6 +1314,7 @@
       const STORAGE_KEY_COINS = 'neon_strike_coins_v1';
       const STORAGE_KEY_PLAYER_NAME = 'neon_strike_player_name_v1';
       const STORAGE_KEY_LEADERBOARD = 'neon_strike_leaderboard_v1';
+      const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx8svIG7mjqIUpeVy6V1SEoAc_4lJ9nKTkJI02FrLsp7_sSW9iF-voGg-Yml2QqUukK/exec";
 
       const WORLD_W = 1680;
       const WORLD_H = 1200;
@@ -1994,6 +1995,7 @@
       const nameSavedTag = document.getElementById('nameSavedTag');
       const nameErrorEl = document.getElementById('nameError');
       const startLeaderboardEl = document.getElementById('startLeaderboard');
+      const startLbStatusEl = document.getElementById('startLbStatus');
 
       const gameOverOverlay = document.getElementById('gameOverOverlay');
       const newRecordBadge = document.getElementById('newRecordBadge');
@@ -2004,6 +2006,7 @@
       const finalKillsEl = document.getElementById('finalKills');
       const finalCoinsEl = document.getElementById('finalCoins');
       const gameOverLeaderboardEl = document.getElementById('gameOverLeaderboard');
+      const gameOverLbStatusEl = document.getElementById('gameOverLbStatus');
       const changeNameBtn = document.getElementById('changeNameBtn');
       const playAgainBtn = document.getElementById('playAgainBtn');
 
@@ -2091,6 +2094,35 @@
 
       let leaderboard = loadLeaderboard();
 
+      // Skicka in poäng till Google Sheets Web App
+      async function sparaPoang(spelarnamn, poang) {
+        try {
+          await fetch(SCRIPT_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({ name: spelarnamn, score: poang })
+          });
+          return true;
+        } catch (error) {
+          console.error("Kunde inte spara poäng:", error);
+          return false;
+        }
+      }
+
+      // Hämta topp 10 från Google Sheets Web App
+      async function hamtaTopplista() {
+        try {
+          const response = await fetch(SCRIPT_URL);
+          if (!response.ok) return null;
+          const topplista = await response.json();
+          if (!Array.isArray(topplista)) return null;
+          return topplista;
+        } catch (error) {
+          console.error("Kunde inte hämta topplistan:", error);
+          return null;
+        }
+      }
+
       function recordLeaderboardEntry(name, runScore, runWave, runKills) {
         const entryId = Date.now() + '_' + Math.random().toString(36).slice(2, 7);
         const entry = {
@@ -2101,13 +2133,13 @@
           kills: runKills
         };
         leaderboard.push(entry);
-        leaderboard.sort((a, b) => (b.score - a.score) || (b.wave - a.wave) || (b.kills - a.kills));
+        leaderboard.sort((a, b) => (b.score - a.score) || ((b.wave || 0) - (a.wave || 0)) || ((b.kills || 0) - (a.kills || 0)));
         leaderboard = leaderboard.slice(0, 10);
         saveLeaderboard(leaderboard);
         return entryId;
       }
 
-      function renderLeaderboard(containerEl, highlightId = null) {
+      function renderLeaderboard(containerEl, highlightMatch = null) {
         containerEl.innerHTML = '';
         if (!leaderboard.length) {
           const empty = document.createElement('div');
@@ -2117,9 +2149,19 @@
           return;
         }
 
+        let highlightedOnce = false;
         leaderboard.forEach((entry, idx) => {
           const row = document.createElement('div');
-          row.className = 'lb-row' + (highlightId && entry.id === highlightId ? ' highlight' : '');
+          let isHighlight = false;
+          if (!highlightedOnce && highlightMatch) {
+            if (highlightMatch.id && entry.id === highlightMatch.id) {
+              isHighlight = true;
+            } else if (!entry.id && entry.name === highlightMatch.name && Number(entry.score) === Number(highlightMatch.score)) {
+              isHighlight = true;
+            }
+            if (isHighlight) highlightedOnce = true;
+          }
+          row.className = 'lb-row' + (isHighlight ? ' highlight' : '');
 
           const rank = document.createElement('span');
           rank.className = 'lb-rank' + (idx < 3 ? ' r' + (idx + 1) : '');
@@ -2130,8 +2172,10 @@
           nameEl.textContent = entry.name;
 
           const waveEl = document.createElement('span');
-          waveEl.className = 'lb-wave';
-          waveEl.textContent = 'W' + entry.wave;
+          if (entry.wave) {
+            waveEl.className = 'lb-wave';
+            waveEl.textContent = 'W' + entry.wave;
+          }
 
           const scoreEl = document.createElement('span');
           scoreEl.className = 'lb-score';
@@ -2145,7 +2189,33 @@
         });
       }
 
+      async function refreshOnlineLeaderboard(highlightMatch = null) {
+        startLbStatusEl.textContent = 'Laddar...';
+        const online = await hamtaTopplista();
+        if (online) {
+          leaderboard = online
+            .map((e) => ({
+              name: String(e.name || 'Player').slice(0, 16),
+              score: Number(e.score) || 0,
+              wave: e.wave ? Number(e.wave) : null
+            }))
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 10);
+          saveLeaderboard(leaderboard);
+          startLbStatusEl.textContent = 'Global Top 10';
+          gameOverLbStatusEl.textContent = 'Global Top 10';
+        } else {
+          startLbStatusEl.textContent = 'Lokal Top 10';
+          gameOverLbStatusEl.textContent = 'Lokal Top 10';
+        }
+        renderLeaderboard(startLeaderboardEl);
+        if (gameState === 'GAMEOVER') {
+          renderLeaderboard(gameOverLeaderboardEl, highlightMatch);
+        }
+      }
+
       renderLeaderboard(startLeaderboardEl);
+      refreshOnlineLeaderboard();
       let kills = 0;
       let wave = 1;
       let waveEnemiesRemaining = 0;
@@ -3130,8 +3200,21 @@
 
         saveCoins();
         const entryId = recordLeaderboardEntry(playerName, score, wave, kills);
+        const highlightMatch = { id: entryId, name: playerName, score };
         renderLeaderboard(startLeaderboardEl);
-        renderLeaderboard(gameOverLeaderboardEl, entryId);
+        renderLeaderboard(gameOverLeaderboardEl, highlightMatch);
+        gameOverLbStatusEl.textContent = 'Sparar...';
+
+        // Skicka poängen till Google Sheet och uppdatera global topplista
+        const runName = playerName;
+        const runScore = score;
+        sparaPoang(runName, runScore).then((ok) => {
+          if (ok) {
+            refreshOnlineLeaderboard(highlightMatch);
+          } else {
+            gameOverLbStatusEl.textContent = 'Lokal Top 10';
+          }
+        });
 
         newRecordBadge.classList.toggle('hidden', !isRecord);
         gameOverSubtitle.textContent = `${playerName} föll i arenan. Utrusta dig och hoppa in igen!`;
