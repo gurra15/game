@@ -1331,6 +1331,7 @@
       const STORAGE_KEY_HIGHSCORE = 'neon_strike_highscore_v1';
       const STORAGE_KEY_MUTE = 'neon_strike_mute_v1';
       const STORAGE_KEY_COINS = 'neon_strike_coins_v1';
+      const STORAGE_KEY_WEAPONS = 'neon_strike_weapons_v1';
       const STORAGE_KEY_PLAYER_NAME = 'neon_strike_player_name_v1';
       const STORAGE_KEY_LEADERBOARD = 'neon_strike_leaderboard_v1';
       const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx8svIG7mjqIUpeVy6V1SEoAc_4lJ9nKTkJI02FrLsp7_sSW9iF-voGg-Yml2QqUukK/exec";
@@ -2084,6 +2085,31 @@
         startCoinsEl.textContent = money.toLocaleString();
       }
 
+      function loadSavedWeapons() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY_WEAPONS);
+          const parsed = raw ? JSON.parse(raw) : null;
+          if (parsed && typeof parsed === 'object') return parsed;
+        } catch (_) {}
+        return {};
+      }
+
+      function saveWeapons() {
+        try {
+          const data = {};
+          for (const def of WEAPON_DEFS) {
+            const st = weaponStates[def.id];
+            if (st) {
+              data[def.id] = {
+                owned: !!st.owned,
+                level: Math.max(1, Math.floor(st.level || 1))
+              };
+            }
+          }
+          localStorage.setItem(STORAGE_KEY_WEAPONS, JSON.stringify(data));
+        } catch (_) {}
+      }
+
       let playerName = (localStorage.getItem(STORAGE_KEY_PLAYER_NAME) || '').trim().slice(0, 16);
       if (playerName) {
         playerNameInput.value = playerName;
@@ -2389,11 +2415,13 @@
         shopOpen = false;
         touchHintTimer = isTouchDevice ? 5.0 : 0;
 
+        const savedWeapons = loadSavedWeapons();
         weaponStates = {};
         for (const def of WEAPON_DEFS) {
+          const saved = savedWeapons[def.id];
           weaponStates[def.id] = {
-            owned: !!def.startOwned,
-            level: 1,
+            owned: !!def.startOwned || !!(saved && saved.owned),
+            level: Math.max(1, Math.floor(Number(saved && saved.level) || 1)),
             ammo: def.magSize,
             reserve: def.startReserve
           };
@@ -2977,6 +3005,7 @@
               st.owned = true;
               st.ammo = def.magSize;
               st.reserve = def.startReserve;
+              saveWeapons();
               player.weaponId = def.id;
               player.reloading = false;
               sound.playBuy();
@@ -3011,6 +3040,7 @@
               st.level++;
               st.ammo = def.magSize;
               st.reserve = Math.min(def.maxReserve, st.reserve + def.crateAmmo);
+              saveWeapons();
               sound.playBuy();
               rebuildWeaponBar();
               syncHud();
