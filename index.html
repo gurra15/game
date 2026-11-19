@@ -324,6 +324,101 @@
       opacity: 0.85;
     }
 
+    /* Tactical Ability Buttons (Grenade & Nova Blast) */
+    .ability-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 2px;
+    }
+
+    .ability-btn {
+      pointer-events: auto;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 13px;
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(13, 22, 40, 0.88);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+      transition: transform 0.1s ease, border-color 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .ability-btn:active:not(:disabled) {
+      transform: scale(0.94);
+    }
+
+    .ability-btn:disabled {
+      opacity: 0.52;
+      cursor: not-allowed;
+    }
+
+    .ability-btn.grenade-btn {
+      border-color: rgba(251, 146, 60, 0.55);
+      color: #fed7aa;
+    }
+
+    .ability-btn.grenade-btn:not(:disabled) {
+      box-shadow: 0 0 12px rgba(251, 146, 60, 0.28);
+    }
+
+    .ability-btn.nova-btn {
+      border-color: rgba(244, 63, 94, 0.5);
+      color: #fecdd3;
+      min-width: 128px;
+      justify-content: center;
+    }
+
+    .ability-btn.nova-btn.ready {
+      border-color: #fb7185;
+      background: linear-gradient(135deg, rgba(225, 29, 72, 0.42), rgba(249, 115, 22, 0.38));
+      color: #fff1f2;
+      box-shadow: 0 0 18px rgba(244, 63, 94, 0.48);
+    }
+
+    .ability-btn.nova-btn.ready.danger-pulse {
+      animation: novaPulse 0.85s ease-in-out infinite;
+    }
+
+    @keyframes novaPulse {
+      0%, 100% { box-shadow: 0 0 14px rgba(244, 63, 94, 0.5); transform: scale(1); }
+      50% { box-shadow: 0 0 26px rgba(251, 146, 60, 0.85); transform: scale(1.04); }
+    }
+
+    .nova-cd-fill {
+      position: absolute;
+      inset: 0;
+      width: 0%;
+      background: rgba(244, 63, 94, 0.22);
+      pointer-events: none;
+      transition: width 0.2s linear;
+    }
+
+    .ability-btn > span,
+    .ability-btn > svg {
+      position: relative;
+      z-index: 1;
+    }
+
+    .ability-badge {
+      background: rgba(0, 0, 0, 0.38);
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+    }
+
     /* Banner Toast */
     #banner {
       position: fixed;
@@ -614,6 +709,12 @@
       gap: 12px;
     }
 
+    .supplies-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 10px;
+    }
+
     .medkit-row {
       display: flex;
       align-items: center;
@@ -623,6 +724,22 @@
       border-radius: 14px;
       background: rgba(16, 185, 129, 0.1);
       border: 1px solid rgba(52, 211, 153, 0.32);
+    }
+
+    .medkit-row.grenade-supply {
+      background: rgba(249, 115, 22, 0.12);
+      border-color: rgba(251, 146, 60, 0.38);
+    }
+
+    .medkit-row.grenade-supply h4 {
+      color: #fed7aa;
+    }
+
+    .btn-grenade-buy {
+      flex: 0 0 auto;
+      background: linear-gradient(135deg, #ea580c, #fb923c);
+      color: #1f0a00;
+      padding: 10px 14px;
     }
 
     .medkit-info h4 {
@@ -860,6 +977,19 @@
           <div id="reloadFill" class="reload-fill"></div>
         </div>
       </div>
+      <div class="ability-row">
+        <button id="grenadeBtn" class="ability-btn grenade-btn" type="button" aria-label="Throw Grenade">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="14" r="7"/><path d="M12 7V4"/><path d="M9 4h6"/><path d="M15 4l3 2"/></svg>
+          <span>GRENADE</span>
+          <span id="grenadeCount" class="ability-badge">3</span>
+        </button>
+        <button id="novaBtn" class="ability-btn nova-btn ready" type="button" aria-label="Nova Blast">
+          <div id="novaCdFill" class="nova-cd-fill"></div>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          <span>NOVA</span>
+          <span id="novaStatus" class="ability-badge">READY</span>
+        </button>
+      </div>
       <div id="weaponBar"></div>
     </div>
   </div>
@@ -876,11 +1006,11 @@
       <div class="controls-box">
         <div class="control-row">
           <span class="control-badge">Touch</span>
-          <span>Left thumb to <strong>move</strong> &bull; Right thumb to <strong>aim &amp; fire</strong> &bull; Tap weapon bar or <strong>SHOP</strong>.</span>
+          <span>Left thumb to <strong>move</strong> &bull; Right thumb to <strong>aim &amp; fire</strong> &bull; Tap <strong>GRENADE</strong>, <strong>NOVA</strong> (1/min), or <strong>SHOP</strong>.</span>
         </div>
         <div class="control-row">
           <span class="control-badge">Desktop</span>
-          <span><strong>WASD / Arrows</strong> move &bull; <strong>Mouse</strong> aim &amp; shoot &bull; <strong>1-6 / Scroll</strong> switch &bull; <strong>B</strong> shop &bull; <strong>R</strong> reload.</span>
+          <span><strong>WASD</strong> move &bull; <strong>Mouse</strong> shoot &bull; <strong>G / Right-Click</strong> grenade &bull; <strong>Space</strong> Nova Blast &bull; <strong>1-6</strong> switch &bull; <strong>B</strong> shop.</span>
         </div>
       </div>
       <button id="playBtn" class="btn-primary" type="button">PLAY</button>
@@ -930,12 +1060,21 @@
         <button id="closeShopBtn" class="shop-close" type="button">RESUME</button>
       </div>
       <div class="shop-body">
-        <div class="medkit-row">
-          <div class="medkit-info">
-            <h4>Field Medkit (+40 HP)</h4>
-            <p>Patch up your armor up to 100 max health.</p>
+        <div class="supplies-grid">
+          <div class="medkit-row">
+            <div class="medkit-info">
+              <h4>Field Medkit (+40 HP)</h4>
+              <p>Patch up your armor up to 100 max health.</p>
+            </div>
+            <button id="buyMedkitBtn" class="btn-sm btn-heal" type="button">HEAL 35 coins</button>
           </div>
-          <button id="buyMedkitBtn" class="btn-sm btn-heal" type="button">HEAL 35 coins</button>
+          <div class="medkit-row grenade-supply">
+            <div class="medkit-info">
+              <h4 id="shopGrenadeTitle">Frag Grenades (+2)</h4>
+              <p>Bouncing explosive grenades (max 9).</p>
+            </div>
+            <button id="buyGrenadeBtn" class="btn-sm btn-grenade-buy" type="button">+2 (25c)</button>
+          </div>
         </div>
         <div id="shopGrid" class="shop-grid"></div>
       </div>
@@ -958,6 +1097,15 @@
       const COINS_PER_KILL = 5;
       const MEDKIT_COST = 35;
       const MEDKIT_HEAL = 40;
+      const START_GRENADES = 3;
+      const MAX_GRENADES = 9;
+      const GRENADE_PACK_COST = 25;
+      const GRENADE_PACK_QTY = 2;
+      const GRENADE_DAMAGE = 185;
+      const GRENADE_RADIUS = 142;
+      const GRENADE_FUSE = 0.95;
+      const NOVA_COOLDOWN = 60; // 1 minute cooldown
+      const NOVA_RADIUS = 380;
 
       const WEAPON_DEFS = [
         {
@@ -1116,13 +1264,156 @@
         }
       ];
 
-      // Symmetrical circular cover pillars (zero corner snagging)
-      const OBSTACLES = [
-        { x: WORLD_W * 0.27, y: WORLD_H * 0.30, r: 46 },
-        { x: WORLD_W * 0.73, y: WORLD_H * 0.30, r: 46 },
-        { x: WORLD_W * 0.27, y: WORLD_H * 0.70, r: 46 },
-        { x: WORLD_W * 0.73, y: WORLD_H * 0.70, r: 46 }
-      ];
+      // Deterministic seeded RNG for natural woodland environment
+      function createRng(seed) {
+        let s = seed >>> 0;
+        return () => {
+          s = (s * 1664525 + 1013904223) >>> 0;
+          return s / 4294967296;
+        };
+      }
+
+      const envRng = createRng(20261119);
+
+      // Solid environment obstacles: Rocks (stenar) & Trees (träd)
+      const OBSTACLES = [];
+      const BUSHES = [];
+      const GROUND_PATCHES = [];
+      const GROUND_PEBBLES = [];
+
+      function buildEnvironment() {
+        const rockLayouts = [
+          { x: 340, y: 270, r: 38 },
+          { x: 1320, y: 260, r: 42 },
+          { x: 380, y: 900, r: 40 },
+          { x: 1310, y: 920, r: 36 },
+          { x: 840, y: 210, r: 34 },
+          { x: 840, y: 990, r: 36 },
+          { x: 220, y: 590, r: 32 },
+          { x: 1460, y: 610, r: 35 },
+          { x: 610, y: 460, r: 28 },
+          { x: 1080, y: 740, r: 30 }
+        ];
+
+        for (const rk of rockLayouts) {
+          const verts = [];
+          const count = 9;
+          for (let i = 0; i < count; i++) {
+            const a = (i / count) * Math.PI * 2;
+            const rad = rk.r * (0.86 + envRng() * 0.22);
+            verts.push({ x: Math.cos(a) * rad, y: Math.sin(a) * rad });
+          }
+          OBSTACLES.push({
+            type: 'rock',
+            x: rk.x,
+            y: rk.y,
+            r: rk.r,
+            verts,
+            mossAngle: envRng() * Math.PI * 2,
+            shade: envRng() * 14 - 7
+          });
+        }
+
+        const treeLayouts = [
+          { x: 190, y: 185, r: 19, canopyR: 58 },
+          { x: 560, y: 180, r: 20, canopyR: 60 },
+          { x: 1120, y: 190, r: 18, canopyR: 54 },
+          { x: 1500, y: 200, r: 21, canopyR: 62 },
+          { x: 170, y: 990, r: 20, canopyR: 58 },
+          { x: 580, y: 1030, r: 18, canopyR: 55 },
+          { x: 1110, y: 1020, r: 21, canopyR: 62 },
+          { x: 1510, y: 980, r: 19, canopyR: 56 },
+          { x: 470, y: 620, r: 20, canopyR: 58 },
+          { x: 1210, y: 560, r: 20, canopyR: 58 },
+          { x: 1070, y: 420, r: 18, canopyR: 52 },
+          { x: 600, y: 770, r: 18, canopyR: 52 }
+        ];
+
+        for (const tr of treeLayouts) {
+          const puffs = [];
+          for (let i = 0; i < 6; i++) {
+            const a = (i / 6) * Math.PI * 2 + envRng() * 0.35;
+            const d = tr.canopyR * (0.28 + envRng() * 0.22);
+            puffs.push({
+              x: Math.cos(a) * d,
+              y: Math.sin(a) * d,
+              r: tr.canopyR * (0.44 + envRng() * 0.16)
+            });
+          }
+          OBSTACLES.push({
+            type: 'tree',
+            x: tr.x,
+            y: tr.y,
+            r: tr.r,
+            canopyR: tr.canopyR,
+            puffs,
+            hueShift: Math.floor(envRng() * 18 - 9)
+          });
+        }
+
+        // Decorative walkable bushes (buskar)
+        for (let i = 0; i < 24; i++) {
+          let bx = 0;
+          let by = 0;
+          let valid = false;
+          for (let tries = 0; tries < 25; tries++) {
+            bx = 75 + envRng() * (WORLD_W - 150);
+            by = 75 + envRng() * (WORLD_H - 150);
+            // Keep center spawn open
+            if (Math.hypot(bx - WORLD_W / 2, by - WORLD_H / 2) < 165) continue;
+            let blocked = false;
+            for (const ob of OBSTACLES) {
+              if (Math.hypot(bx - ob.x, by - ob.y) < ob.r + 36) {
+                blocked = true;
+                break;
+              }
+            }
+            if (!blocked) {
+              valid = true;
+              break;
+            }
+          }
+          if (!valid) continue;
+          const r = 20 + envRng() * 14;
+          const puffs = [];
+          for (let p = 0; p < 5; p++) {
+            const a = (p / 5) * Math.PI * 2 + envRng() * 0.5;
+            const d = r * (0.3 + envRng() * 0.25);
+            puffs.push({ x: Math.cos(a) * d, y: Math.sin(a) * d, r: r * (0.48 + envRng() * 0.2) });
+          }
+          const hasBerries = envRng() < 0.45;
+          const berries = [];
+          if (hasBerries) {
+            for (let b = 0; b < 4; b++) {
+              const a = envRng() * Math.PI * 2;
+              const d = envRng() * r * 0.6;
+              berries.push({ x: Math.cos(a) * d, y: Math.sin(a) * d });
+            }
+          }
+          BUSHES.push({ x: bx, y: by, r, puffs, berries, rustle: 0 });
+        }
+
+        // Organic ground grass patches & small stones
+        for (let i = 0; i < 36; i++) {
+          GROUND_PATCHES.push({
+            x: envRng() * WORLD_W,
+            y: envRng() * WORLD_H,
+            rx: 55 + envRng() * 110,
+            ry: 38 + envRng() * 80,
+            rot: envRng() * Math.PI,
+            dark: envRng() < 0.5
+          });
+        }
+        for (let i = 0; i < 110; i++) {
+          GROUND_PEBBLES.push({
+            x: 30 + envRng() * (WORLD_W - 60),
+            y: 30 + envRng() * (WORLD_H - 60),
+            r: 2 + envRng() * 3.5,
+            isGrass: envRng() < 0.65
+          });
+        }
+      }
+      buildEnvironment();
 
       // ============================================================
       // PROCEDURAL WEB AUDIO ENGINE
@@ -1206,6 +1497,22 @@
           const t = this.ctx.currentTime;
           this._tone('sine', 110, 26, 0.38, 0.3, t);
           this._noise(0.36, 460, 'lowpass', 0.32, t);
+        }
+
+        playThrow() {
+          if (!this._canPlay()) return;
+          const t = this.ctx.currentTime;
+          this._tone('sine', 260, 520, 0.09, 0.1, t);
+          this._noise(0.08, 1500, 'bandpass', 0.09, t);
+        }
+
+        playNova() {
+          if (!this._canPlay()) return;
+          const t = this.ctx.currentTime;
+          this._tone('sawtooth', 180, 22, 0.65, 0.35, t);
+          this._tone('sine', 95, 24, 0.75, 0.38, t);
+          this._tone('triangle', 640, 120, 0.35, 0.16, t);
+          this._noise(0.58, 380, 'lowpass', 0.38, t);
         }
 
         playHit() {
@@ -1320,6 +1627,11 @@
       const weaponBarEl = document.getElementById('weaponBar');
       const reloadBarWrap = document.getElementById('reloadBarWrap');
       const reloadFillEl = document.getElementById('reloadFill');
+      const grenadeBtn = document.getElementById('grenadeBtn');
+      const grenadeCountEl = document.getElementById('grenadeCount');
+      const novaBtn = document.getElementById('novaBtn');
+      const novaStatusEl = document.getElementById('novaStatus');
+      const novaCdFillEl = document.getElementById('novaCdFill');
       const bannerEl = document.getElementById('banner');
 
       const startOverlay = document.getElementById('startOverlay');
@@ -1339,6 +1651,8 @@
       const shopMoneyEl = document.getElementById('shopMoney');
       const shopHpEl = document.getElementById('shopHp');
       const buyMedkitBtn = document.getElementById('buyMedkitBtn');
+      const buyGrenadeBtn = document.getElementById('buyGrenadeBtn');
+      const shopGrenadeTitle = document.getElementById('shopGrenadeTitle');
       const shopGridEl = document.getElementById('shopGrid');
 
       const sound = new SoundEngine();
@@ -1385,6 +1699,8 @@
 
       let screenShake = 0;
       let hurtFlash = 0;
+      let novaFlash = 0;
+      let novaCooldown = 0;
       let bannerTimer = 0;
       let isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
       let touchHintTimer = 0;
@@ -1395,6 +1711,7 @@
       let player = null;
       let weaponStates = {}; // id -> { owned, level, ammo }
       let bullets = [];
+      let grenades = [];
       let enemyBullets = [];
       let enemies = [];
       let particles = [];
@@ -1475,6 +1792,8 @@
         wave = 1;
         screenShake = 0;
         hurtFlash = 0;
+        novaFlash = 0;
+        novaCooldown = 0;
         shopOpen = false;
         touchHintTimer = isTouchDevice ? 5.0 : 0;
 
@@ -1499,6 +1818,8 @@
           maxHp: MAX_HP,
           weaponId: 'rifle',
           fireCooldown: 0,
+          grenades: START_GRENADES,
+          grenadeCooldown: 0,
           reloading: false,
           reloadTimer: 0,
           reloadDuration: 1,
@@ -1512,6 +1833,7 @@
         camera.y = player.y;
 
         bullets = [];
+        grenades = [];
         enemyBullets = [];
         enemies = [];
         particles = [];
@@ -1794,6 +2116,95 @@
         updateWeaponBarAmmo();
       }
 
+      function throwGrenade() {
+        if (gameState !== 'PLAYING' || shopOpen || !player) return;
+        if (player.grenades <= 0 || player.grenadeCooldown > 0) return;
+
+        player.grenades--;
+        player.grenadeCooldown = 0.35;
+        sound.playThrow();
+
+        const cos = Math.cos(player.angle);
+        const sin = Math.sin(player.angle);
+        const speed = 460;
+        grenades.push({
+          x: player.x + cos * 18,
+          y: player.y + sin * 18,
+          vx: cos * speed + player.vx * 0.25,
+          vy: sin * speed + player.vy * 0.25,
+          z: 14,
+          vz: 215,
+          r: 7,
+          rot: 0,
+          vrot: 11,
+          fuse: GRENADE_FUSE,
+          age: 0
+        });
+
+        updateAbilityHud();
+      }
+
+      function triggerNova() {
+        if (gameState !== 'PLAYING' || shopOpen || !player) return;
+        if (novaCooldown > 0) return;
+
+        novaCooldown = NOVA_COOLDOWN;
+        novaFlash = 0.55;
+        screenShake = Math.max(screenShake, 18);
+        sound.playNova();
+
+        // Multi-ring expanding mega shockwave
+        shockwaves.push({
+          x: player.x,
+          y: player.y,
+          r: 18,
+          maxR: NOVA_RADIUS,
+          color: '#fb7185',
+          life: 0.48,
+          maxLife: 0.48
+        });
+        shockwaves.push({
+          x: player.x,
+          y: player.y,
+          r: 10,
+          maxR: NOVA_RADIUS * 0.85,
+          color: '#fde047',
+          life: 0.36,
+          maxLife: 0.36
+        });
+
+        spawnBurst(player.x, player.y, '#fb7185', 42, 140, 560, 6.2);
+        spawnBurst(player.x, player.y, '#fde047', 34, 100, 440, 5.2);
+        spawnBurst(player.x, player.y, '#ffffff', 20, 80, 340, 4.0);
+
+        // Vaporize all enemy projectiles within blast radius
+        for (let i = enemyBullets.length - 1; i >= 0; i--) {
+          const eb = enemyBullets[i];
+          if (distSq(eb.x, eb.y, player.x, player.y) <= NOVA_RADIUS * NOVA_RADIUS) {
+            spawnBurst(eb.x, eb.y, eb.color, 4, 40, 120, 2.5);
+            enemyBullets.splice(i, 1);
+          }
+        }
+
+        // Instantly kill all monsters near the player in one explosion!
+        let wiped = 0;
+        for (let i = enemies.length - 1; i >= 0; i--) {
+          const e = enemies[i];
+          const dx = e.x - player.x;
+          const dy = e.y - player.y;
+          const d = Math.hypot(dx, dy);
+          if (d <= NOVA_RADIUS + e.r) {
+            const nx = d > 0.001 ? dx / d : 1;
+            const ny = d > 0.001 ? dy / d : 0;
+            damageEnemy(i, 99999, nx * 420, ny * 420);
+            wiped++;
+          }
+        }
+
+        showBanner(wiped > 0 ? `NOVA BLAST! ${wiped} ELIMINATED!` : 'NOVA BLAST!', 2.0);
+        updateAbilityHud();
+      }
+
       function openShop() {
         if (gameState !== 'PLAYING') return;
         shopOpen = true;
@@ -1812,6 +2223,7 @@
 
       function canAffordAnything() {
         if (player && player.hp < MAX_HP && money >= MEDKIT_COST) return true;
+        if (player && player.grenades < MAX_GRENADES && money >= GRENADE_PACK_COST) return true;
         for (const def of WEAPON_DEFS) {
           const st = weaponStates[def.id];
           if (!st.owned && money >= def.cost) return true;
@@ -1826,6 +2238,11 @@
         const needHeal = player.hp < MAX_HP;
         buyMedkitBtn.disabled = !needHeal || money < MEDKIT_COST;
         buyMedkitBtn.textContent = needHeal ? `HEAL ${MEDKIT_COST} coins` : 'FULL HP';
+
+        const canBuyGrenade = player.grenades < MAX_GRENADES;
+        shopGrenadeTitle.textContent = `Frag Grenades (+${GRENADE_PACK_QTY}) — ${player.grenades}/${MAX_GRENADES}`;
+        buyGrenadeBtn.disabled = !canBuyGrenade || money < GRENADE_PACK_COST;
+        buyGrenadeBtn.textContent = canBuyGrenade ? `+${GRENADE_PACK_QTY} (${GRENADE_PACK_COST}c)` : 'MAX';
 
         shopGridEl.innerHTML = '';
         for (const def of WEAPON_DEFS) {
@@ -1987,6 +2404,32 @@
         waveTextEl.textContent = `WAVE ${wave}`;
         scoreTextEl.textContent = score.toLocaleString();
         shopBtn.classList.toggle('can-buy', canAffordAnything());
+        updateAbilityHud();
+      }
+
+      function updateAbilityHud() {
+        if (!player) return;
+        grenadeCountEl.textContent = String(player.grenades);
+        grenadeBtn.disabled = player.grenades <= 0;
+
+        const ready = novaCooldown <= 0;
+        novaBtn.disabled = !ready;
+        novaBtn.classList.toggle('ready', ready);
+
+        if (ready) {
+          novaStatusEl.textContent = 'READY';
+          novaCdFillEl.style.width = '0%';
+          // Pulse urgently when 3+ enemies are closing in around the player
+          let closeCount = 0;
+          for (const e of enemies) {
+            if (distSq(e.x, e.y, player.x, player.y) < 250 * 250) closeCount++;
+          }
+          novaBtn.classList.toggle('danger-pulse', closeCount >= 3);
+        } else {
+          novaStatusEl.textContent = `${Math.ceil(novaCooldown)}s`;
+          novaCdFillEl.style.width = `${clamp((novaCooldown / NOVA_COOLDOWN) * 100, 0, 100)}%`;
+          novaBtn.classList.remove('danger-pulse');
+        }
       }
 
       // ============================================================
@@ -2172,6 +2615,10 @@
         if (touchHintTimer > 0) touchHintTimer -= dt;
         if (screenShake > 0) screenShake = Math.max(0, screenShake - dt * 28);
         if (hurtFlash > 0) hurtFlash = Math.max(0, hurtFlash - dt * 1.4);
+        if (novaFlash > 0) novaFlash = Math.max(0, novaFlash - dt * 1.6);
+        if (novaCooldown > 0) novaCooldown = Math.max(0, novaCooldown - dt);
+        if (player.grenadeCooldown > 0) player.grenadeCooldown = Math.max(0, player.grenadeCooldown - dt);
+        updateAbilityHud();
 
         // --- Player Movement ---
         let mx = 0;
@@ -2559,6 +3006,109 @@
           ft.life -= dt;
           if (ft.life <= 0) floatingTexts.splice(i, 1);
         }
+
+        // --- Thrown Grenades ---
+        for (let i = grenades.length - 1; i >= 0; i--) {
+          const g = grenades[i];
+          g.age += dt;
+          g.fuse -= dt;
+          g.rot += g.vrot * dt;
+
+          // Horizontal drag & movement
+          const drag = g.z <= 1 ? 5.2 : 1.1;
+          g.vx *= Math.exp(-drag * dt);
+          g.vy *= Math.exp(-drag * dt);
+          g.x += g.vx * dt;
+          g.y += g.vy * dt;
+
+          // Vertical bounce arc
+          g.vz -= 680 * dt;
+          g.z += g.vz * dt;
+          if (g.z < 0) {
+            g.z = 0;
+            if (Math.abs(g.vz) > 45) {
+              g.vz = -g.vz * 0.45;
+              g.vrot *= 0.65;
+            } else {
+              g.vz = 0;
+              g.vrot *= 0.8;
+            }
+          }
+
+          // Arena boundary bounce
+          if (g.x < 18) { g.x = 18; g.vx = Math.abs(g.vx) * 0.6; }
+          if (g.x > WORLD_W - 18) { g.x = WORLD_W - 18; g.vx = -Math.abs(g.vx) * 0.6; }
+          if (g.y < 18) { g.y = 18; g.vy = Math.abs(g.vy) * 0.6; }
+          if (g.y > WORLD_H - 18) { g.y = WORLD_H - 18; g.vy = -Math.abs(g.vy) * 0.6; }
+
+          // Bounce off rocks & tree trunks
+          for (const ob of OBSTACLES) {
+            const dx = g.x - ob.x;
+            const dy = g.y - ob.y;
+            const minDist = ob.r + g.r;
+            const d2 = dx * dx + dy * dy;
+            if (d2 < minDist * minDist && d2 > 0.001) {
+              const d = Math.sqrt(d2);
+              const nx = dx / d;
+              const ny = dy / d;
+              g.x = ob.x + nx * minDist;
+              g.y = ob.y + ny * minDist;
+              const dot = g.vx * nx + g.vy * ny;
+              if (dot < 0) {
+                g.vx = (g.vx - 2 * dot * nx) * 0.55;
+                g.vy = (g.vy - 2 * dot * ny) * 0.55;
+              }
+            }
+          }
+
+          // Fuse sparks
+          if (Math.random() < 0.65) {
+            particles.push({
+              x: g.x,
+              y: g.y - g.z - 4,
+              vx: rand(-50, 50),
+              vy: rand(-70, -15),
+              r: rand(1.4, 2.6),
+              color: Math.random() < 0.5 ? '#fde047' : '#fb923c',
+              life: 0.16,
+              maxLife: 0.16
+            });
+          }
+
+          // Explode on direct enemy contact (after brief arming time) or fuse end
+          let hitEnemy = false;
+          if (g.age > 0.14) {
+            for (const e of enemies) {
+              const hr = e.r + g.r + 4;
+              if (distSq(g.x, g.y, e.x, e.y) <= hr * hr) {
+                hitEnemy = true;
+                break;
+              }
+            }
+          }
+
+          if (g.fuse <= 0 || hitEnemy) {
+            applyExplosion(g.x, g.y, GRENADE_RADIUS, GRENADE_DAMAGE, '#fb923c', 360);
+            shockwaves.push({
+              x: g.x,
+              y: g.y,
+              r: 12,
+              maxR: GRENADE_RADIUS * 0.72,
+              color: '#fef08a',
+              life: 0.22,
+              maxLife: 0.22
+            });
+            grenades.splice(i, 1);
+          }
+        }
+
+        // --- Bush Rustle ---
+        for (const b of BUSHES) {
+          if (b.rustle > 0) b.rustle = Math.max(0, b.rustle - dt * 3.5);
+          if (distSq(player.x, player.y, b.x, b.y) < (b.r + player.r) * (b.r + player.r) && Math.hypot(player.vx, player.vy) > 40) {
+            b.rustle = Math.min(1, b.rustle + dt * 6);
+          }
+        }
       }
 
       // ============================================================
@@ -2567,8 +3117,8 @@
       function render() {
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-        // Background void
-        ctx.fillStyle = '#060b16';
+        // Background woodland void
+        ctx.fillStyle = '#09140e';
         ctx.fillRect(0, 0, viewW, viewH);
 
         // World Transform with Camera & Screen Shake
@@ -2583,11 +3133,14 @@
         drawArenaFloor();
         drawCasings();
         drawCoins();
+        drawBushes();
         drawObstacles();
         drawTracers();
         drawBullets();
+        drawGrenades();
         drawEnemies();
         if (player && gameState !== 'START') drawPlayer();
+        drawTreeCanopies();
         drawParticles();
         drawShockwaves();
         drawFloatingTexts();
@@ -2598,80 +3151,299 @@
         if (gameState === 'PLAYING' && !shopOpen) {
           drawOffscreenIndicators();
           drawHurtVignette();
+          drawNovaFlash();
           drawVirtualSticks();
         }
       }
 
       function drawArenaFloor() {
-        // Arena base
-        ctx.fillStyle = '#0b1324';
+        // Woodland grass base
+        ctx.fillStyle = '#14291d';
         ctx.fillRect(0, 0, WORLD_W, WORLD_H);
 
-        // Subtle tactical grid
-        const grid = 64;
-        ctx.strokeStyle = 'rgba(56, 189, 248, 0.065)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        for (let x = 0; x <= WORLD_W; x += grid) {
-          ctx.moveTo(x, 0);
-          ctx.lineTo(x, WORLD_H);
+        // Organic grass patches
+        for (const p of GROUND_PATCHES) {
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rot);
+          ctx.fillStyle = p.dark ? 'rgba(9, 24, 15, 0.36)' : 'rgba(34, 72, 46, 0.28)';
+          ctx.beginPath();
+          ctx.ellipse(0, 0, p.rx, p.ry, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
         }
-        for (let y = 0; y <= WORLD_H; y += grid) {
-          ctx.moveTo(0, y);
-          ctx.lineTo(WORLD_W, y);
+
+        // Central dirt clearing around spawn
+        const clearGrad = ctx.createRadialGradient(WORLD_W / 2, WORLD_H / 2, 20, WORLD_W / 2, WORLD_H / 2, 160);
+        clearGrad.addColorStop(0, 'rgba(82, 66, 46, 0.36)');
+        clearGrad.addColorStop(1, 'rgba(82, 66, 46, 0)');
+        ctx.fillStyle = clearGrad;
+        ctx.beginPath();
+        ctx.arc(WORLD_W / 2, WORLD_H / 2, 160, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Small grass blades & pebbles
+        for (const peb of GROUND_PEBBLES) {
+          if (peb.isGrass) {
+            ctx.strokeStyle = 'rgba(74, 150, 96, 0.28)';
+            ctx.lineWidth = 1.4;
+            ctx.beginPath();
+            ctx.moveTo(peb.x, peb.y);
+            ctx.lineTo(peb.x - 2.5, peb.y - 6);
+            ctx.moveTo(peb.x, peb.y);
+            ctx.lineTo(peb.x + 2.5, peb.y - 5.5);
+            ctx.stroke();
+          } else {
+            ctx.fillStyle = 'rgba(148, 163, 184, 0.18)';
+            ctx.beginPath();
+            ctx.arc(peb.x, peb.y, peb.r, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
-        ctx.stroke();
 
-        // Center tactical ring
-        ctx.strokeStyle = 'rgba(56, 189, 248, 0.12)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(WORLD_W / 2, WORLD_H / 2, 130, 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.arc(WORLD_W / 2, WORLD_H / 2, 18, 0, Math.PI * 2);
-        ctx.stroke();
-
-        // Glowing arena walls
-        ctx.strokeStyle = '#38bdf8';
-        ctx.lineWidth = 4;
-        ctx.strokeRect(8, 8, WORLD_W - 16, WORLD_H - 16);
-
-        ctx.strokeStyle = 'rgba(56, 189, 248, 0.22)';
-        ctx.lineWidth = 14;
+        // Perimeter border fence / stone wall
+        ctx.strokeStyle = 'rgba(15, 36, 24, 0.9)';
+        ctx.lineWidth = 16;
         ctx.strokeRect(2, 2, WORLD_W - 4, WORLD_H - 4);
+
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(10, 10, WORLD_W - 20, WORLD_H - 20);
+      }
+
+      function drawBushes() {
+        for (const b of BUSHES) {
+          const wobble = b.rustle > 0 ? Math.sin(performance.now() * 0.03) * b.rustle * 0.09 : 0;
+          ctx.save();
+          ctx.translate(b.x, b.y);
+          ctx.scale(1 + wobble, 1 - wobble);
+
+          // Ground shadow
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+          ctx.beginPath();
+          ctx.arc(4, 6, b.r + 2, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Dark leafy under-layer
+          ctx.fillStyle = '#144528';
+          for (const pf of b.puffs) {
+            ctx.beginPath();
+            ctx.arc(pf.x, pf.y, pf.r, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // Brighter leafy top puffs
+          ctx.fillStyle = '#1f6b3c';
+          for (const pf of b.puffs) {
+            ctx.beginPath();
+            ctx.arc(pf.x - 2, pf.y - 2, pf.r * 0.72, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          ctx.fillStyle = '#2d8a4e';
+          ctx.beginPath();
+          ctx.arc(-3, -3, b.r * 0.42, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Optional small wild berries
+          if (b.berries.length > 0) {
+            ctx.fillStyle = '#f43f5e';
+            for (const br of b.berries) {
+              ctx.beginPath();
+              ctx.arc(br.x, br.y, 2.3, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+
+          ctx.restore();
+        }
       }
 
       function drawObstacles() {
         for (const ob of OBSTACLES) {
-          // Drop shadow
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
-          ctx.beginPath();
-          ctx.arc(ob.x + 6, ob.y + 8, ob.r + 2, 0, Math.PI * 2);
-          ctx.fill();
+          if (ob.type === 'rock') {
+            ctx.save();
+            ctx.translate(ob.x, ob.y);
 
-          // Metallic body
-          const grad = ctx.createRadialGradient(ob.x - 12, ob.y - 12, 6, ob.x, ob.y, ob.r);
-          grad.addColorStop(0, '#334155');
-          grad.addColorStop(1, '#111c33');
-          ctx.fillStyle = grad;
-          ctx.beginPath();
-          ctx.arc(ob.x, ob.y, ob.r, 0, Math.PI * 2);
-          ctx.fill();
+            // Drop shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
+            ctx.beginPath();
+            ob.verts.forEach((v, idx) => {
+              if (idx === 0) ctx.moveTo(v.x + 6, v.y + 8);
+              else ctx.lineTo(v.x + 6, v.y + 8);
+            });
+            ctx.closePath();
+            ctx.fill();
 
-          // Outer neon rim
-          ctx.strokeStyle = 'rgba(56, 189, 248, 0.55)';
-          ctx.lineWidth = 3;
-          ctx.stroke();
+            // Rock body
+            const grad = ctx.createRadialGradient(-ob.r * 0.3, -ob.r * 0.3, 4, 0, 0, ob.r * 1.1);
+            grad.addColorStop(0, '#788496');
+            grad.addColorStop(0.6, '#4b5563');
+            grad.addColorStop(1, '#2a3340');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ob.verts.forEach((v, idx) => {
+              if (idx === 0) ctx.moveTo(v.x, v.y);
+              else ctx.lineTo(v.x, v.y);
+            });
+            ctx.closePath();
+            ctx.fill();
 
-          // Inner core ring
-          ctx.strokeStyle = 'rgba(56, 189, 248, 0.28)';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.arc(ob.x, ob.y, ob.r * 0.55, 0, Math.PI * 2);
-          ctx.stroke();
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            // Top facet highlight
+            ctx.fillStyle = 'rgba(203, 213, 225, 0.16)';
+            ctx.beginPath();
+            ctx.ellipse(-ob.r * 0.2, -ob.r * 0.22, ob.r * 0.42, ob.r * 0.26, -0.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Subtle moss patch
+            ctx.fillStyle = 'rgba(34, 139, 76, 0.45)';
+            ctx.beginPath();
+            ctx.arc(Math.cos(ob.mossAngle) * ob.r * 0.38, Math.sin(ob.mossAngle) * ob.r * 0.38, ob.r * 0.24, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+          } else if (ob.type === 'tree') {
+            ctx.save();
+            ctx.translate(ob.x, ob.y);
+
+            // Wide canopy ground shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.34)';
+            ctx.beginPath();
+            ctx.arc(10, 12, ob.canopyR * 0.92, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Tree roots & solid trunk
+            ctx.fillStyle = '#4a3120';
+            ctx.strokeStyle = '#291a10';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(0, 0, ob.r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Bark highlight ring
+            ctx.fillStyle = '#6b472f';
+            ctx.beginPath();
+            ctx.arc(-3, -3, ob.r * 0.58, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+          }
         }
+      }
+
+      function drawTreeCanopies() {
+        for (const ob of OBSTACLES) {
+          if (ob.type !== 'tree') continue;
+          ctx.save();
+          ctx.translate(ob.x, ob.y);
+
+          // Fade canopy semi-transparent if the player walks beneath it
+          let alpha = 0.96;
+          if (player && distSq(player.x, player.y, ob.x, ob.y) < (ob.canopyR + 22) * (ob.canopyR + 22)) {
+            alpha = 0.4;
+          }
+          ctx.globalAlpha = alpha;
+
+          // Deep outer foliage
+          ctx.fillStyle = '#113c22';
+          for (const pf of ob.puffs) {
+            ctx.beginPath();
+            ctx.arc(pf.x, pf.y, pf.r, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // Mid lush foliage
+          ctx.fillStyle = '#1b5e35';
+          for (const pf of ob.puffs) {
+            ctx.beginPath();
+            ctx.arc(pf.x - 3, pf.y - 3, pf.r * 0.78, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // Sunlit crown highlights
+          ctx.fillStyle = '#2b824a';
+          ctx.beginPath();
+          ctx.arc(-ob.canopyR * 0.16, -ob.canopyR * 0.18, ob.canopyR * 0.44, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = 'rgba(134, 239, 172, 0.18)';
+          ctx.beginPath();
+          ctx.arc(-ob.canopyR * 0.24, -ob.canopyR * 0.24, ob.canopyR * 0.24, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.restore();
+        }
+      }
+
+      function drawGrenades() {
+        for (const g of grenades) {
+          // Subtle danger blast preview ring when fuse is close
+          if (g.fuse < 0.42) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(251, 146, 60, 0.35)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6, 6]);
+            ctx.beginPath();
+            ctx.arc(g.x, g.y, GRENADE_RADIUS, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+          }
+
+          // Ground shadow
+          const shadowScale = clamp(1 - g.z / 160, 0.45, 1);
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.38)';
+          ctx.beginPath();
+          ctx.ellipse(g.x, g.y + 4, g.r * 1.15 * shadowScale, g.r * 0.7 * shadowScale, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Arcing grenade body
+          ctx.save();
+          ctx.translate(g.x, g.y - g.z);
+          ctx.rotate(g.rot);
+
+          ctx.fillStyle = '#365314';
+          ctx.strokeStyle = '#a3e635';
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.arc(0, 0, g.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Metal pin cap
+          ctx.fillStyle = '#cbd5e1';
+          ctx.fillRect(-3, -g.r - 3, 6, 3.5);
+
+          // Flashing fuse light
+          const flash = Math.sin(g.age * 28) > 0;
+          ctx.fillStyle = flash ? '#fef08a' : '#f97316';
+          ctx.beginPath();
+          ctx.arc(0, -g.r - 4, flash ? 3.5 : 2.3, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.restore();
+        }
+      }
+
+      function drawNovaFlash() {
+        if (novaFlash <= 0.01) return;
+        const grad = ctx.createRadialGradient(
+          viewW / 2,
+          viewH / 2,
+          10,
+          viewW / 2,
+          viewH / 2,
+          Math.max(viewW, viewH) * 0.7
+        );
+        grad.addColorStop(0, `rgba(254, 240, 138, ${novaFlash * 0.55})`);
+        grad.addColorStop(0.5, `rgba(251, 113, 133, ${novaFlash * 0.32})`);
+        grad.addColorStop(1, 'rgba(244, 63, 94, 0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, viewW, viewH);
       }
 
       function drawCasings() {
@@ -3183,6 +3955,14 @@
         if (e.button === 0) mouse.down = false;
       });
 
+      canvas.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        if (gameState === 'PLAYING' && !shopOpen) {
+          sound.unlock();
+          throwGrenade();
+        }
+      });
+
       window.addEventListener('wheel', (e) => {
         if (gameState !== 'PLAYING' || shopOpen) return;
         cycleWeapon(e.deltaY > 0 ? 1 : -1);
@@ -3206,6 +3986,11 @@
           }
           if (shopOpen) return;
 
+          if (e.code === 'KeyG') throwGrenade();
+          if (e.code === 'Space' || e.code === 'KeyF') {
+            e.preventDefault();
+            triggerNova();
+          }
           if (e.code === 'KeyR') triggerReload();
           if (e.code === 'KeyQ') cycleWeapon(-1);
           if (e.code === 'KeyE') cycleWeapon(1);
@@ -3259,6 +4044,27 @@
         sound.playBuy();
         syncHud();
         renderShop();
+      });
+
+      buyGrenadeBtn.addEventListener('click', () => {
+        if (!player || player.grenades >= MAX_GRENADES || money < GRENADE_PACK_COST) return;
+        money -= GRENADE_PACK_COST;
+        player.grenades = Math.min(MAX_GRENADES, player.grenades + GRENADE_PACK_QTY);
+        sound.playBuy();
+        syncHud();
+        renderShop();
+      });
+
+      grenadeBtn.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        sound.unlock();
+        throwGrenade();
+      });
+
+      novaBtn.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        sound.unlock();
+        triggerNova();
       });
 
       muteBtn.addEventListener('click', () => {
