@@ -1024,7 +1024,7 @@
         </div>
       </div>
       <button id="playBtn" class="btn-primary" type="button">PLAY</button>
-      <div class="high-score-line">High Score: <strong id="startHighScore">0</strong></div>
+      <div class="high-score-line">High Score: <strong id="startHighScore">0</strong> &nbsp;&bull;&nbsp; Saved Coins: <strong id="startCoins">0</strong></div>
     </div>
   </div>
 
@@ -1053,6 +1053,7 @@
         </div>
       </div>
       <button id="playAgainBtn" class="btn-primary" type="button">PLAY AGAIN</button>
+      <div class="high-score-line">Saved Coins: <strong id="finalCoins">0</strong></div>
     </div>
   </div>
 
@@ -1100,6 +1101,7 @@
       // ============================================================
       const STORAGE_KEY_HIGHSCORE = 'neon_strike_highscore_v1';
       const STORAGE_KEY_MUTE = 'neon_strike_mute_v1';
+      const STORAGE_KEY_COINS = 'neon_strike_coins_v1';
 
       const WORLD_W = 1680;
       const WORLD_H = 1200;
@@ -1679,6 +1681,7 @@
       const startOverlay = document.getElementById('startOverlay');
       const playBtn = document.getElementById('playBtn');
       const startHighScoreEl = document.getElementById('startHighScore');
+      const startCoinsEl = document.getElementById('startCoins');
 
       const gameOverOverlay = document.getElementById('gameOverOverlay');
       const newRecordBadge = document.getElementById('newRecordBadge');
@@ -1686,6 +1689,7 @@
       const finalHighScoreEl = document.getElementById('finalHighScore');
       const finalWaveEl = document.getElementById('finalWave');
       const finalKillsEl = document.getElementById('finalKills');
+      const finalCoinsEl = document.getElementById('finalCoins');
       const playAgainBtn = document.getElementById('playAgainBtn');
 
       const shopOverlay = document.getElementById('shopOverlay');
@@ -1731,7 +1735,15 @@
       startHighScoreEl.textContent = highScore.toLocaleString();
 
       let score = 0;
-      let money = 0;
+      let money = Math.max(0, Math.floor(Number(localStorage.getItem(STORAGE_KEY_COINS)) || 0));
+      startCoinsEl.textContent = money.toLocaleString();
+
+      function saveCoins() {
+        try {
+          localStorage.setItem(STORAGE_KEY_COINS, String(money));
+        } catch (_) {}
+        startCoinsEl.textContent = money.toLocaleString();
+      }
       let kills = 0;
       let wave = 1;
       let waveEnemiesRemaining = 0;
@@ -1842,7 +1854,6 @@
       // ============================================================
       function resetGame() {
         score = 0;
-        money = 0;
         kills = 0;
         wave = 1;
         screenShake = 0;
@@ -2437,6 +2448,7 @@
             buyBtn.addEventListener('click', () => {
               if (money < def.cost) return;
               money -= def.cost;
+              saveCoins();
               st.owned = true;
               st.ammo = def.magSize;
               st.reserve = def.startReserve;
@@ -2471,6 +2483,7 @@
               upgBtn.addEventListener('click', () => {
                 if (money < upgCost || st.level >= 3) return;
                 money -= upgCost;
+                saveCoins();
                 st.level++;
                 st.ammo = def.magSize;
                 st.reserve = Math.min(def.maxReserve, st.reserve + def.crateAmmo);
@@ -2662,6 +2675,7 @@
         if (e.hp <= 0) {
           kills++;
           money += COINS_PER_KILL;
+          saveCoins();
           score += e.scoreVal;
           sound.playKill();
           sound.playCoin();
@@ -2717,12 +2731,14 @@
           localStorage.setItem(STORAGE_KEY_HIGHSCORE, String(highScore));
         }
 
+        saveCoins();
         newRecordBadge.classList.toggle('hidden', !isRecord);
         finalScoreEl.textContent = score.toLocaleString();
         finalHighScoreEl.textContent = highScore.toLocaleString();
         startHighScoreEl.textContent = highScore.toLocaleString();
         finalWaveEl.textContent = String(wave);
         finalKillsEl.textContent = kills.toLocaleString();
+        finalCoinsEl.textContent = money.toLocaleString();
         gameOverOverlay.classList.remove('hidden');
       }
 
@@ -4364,6 +4380,7 @@
       buyMedkitBtn.addEventListener('click', () => {
         if (!player || player.hp >= MAX_HP || money < MEDKIT_COST) return;
         money -= MEDKIT_COST;
+        saveCoins();
         player.hp = Math.min(MAX_HP, player.hp + MEDKIT_HEAL);
         sound.playBuy();
         syncHud();
@@ -4373,6 +4390,7 @@
       buyGrenadeBtn.addEventListener('click', () => {
         if (!player || player.grenades >= MAX_GRENADES || money < GRENADE_PACK_COST) return;
         money -= GRENADE_PACK_COST;
+        saveCoins();
         player.grenades = Math.min(MAX_GRENADES, player.grenades + GRENADE_PACK_QTY);
         sound.playBuy();
         syncHud();
