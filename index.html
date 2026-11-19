@@ -2144,17 +2144,24 @@
         }
       }
 
+      function parseScore(val) {
+        if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
+        const cleaned = String(val || '0').replace(/[^\d.-]/g, '');
+        const n = Number(cleaned);
+        return Number.isFinite(n) ? n : 0;
+      }
+
       function recordLeaderboardEntry(name, runScore, runWave, runKills) {
         const entryId = Date.now() + '_' + Math.random().toString(36).slice(2, 7);
         const entry = {
           id: entryId,
           name: name || 'Player',
-          score: runScore,
+          score: parseScore(runScore),
           wave: runWave,
           kills: runKills
         };
         leaderboard.push(entry);
-        leaderboard.sort((a, b) => (b.score - a.score) || ((b.wave || 0) - (a.wave || 0)) || ((b.kills || 0) - (a.kills || 0)));
+        leaderboard.sort((a, b) => parseScore(b.score) - parseScore(a.score));
         leaderboard = leaderboard.slice(0, 10);
         saveLeaderboard(leaderboard);
         return entryId;
@@ -2162,7 +2169,12 @@
 
       function renderLeaderboard(containerEl, highlightMatch = null) {
         containerEl.innerHTML = '';
-        if (!leaderboard.length) {
+        const sorted = leaderboard
+          .map((e) => ({ ...e, score: parseScore(e.score) }))
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 10);
+
+        if (!sorted.length) {
           const empty = document.createElement('div');
           empty.className = 'lb-empty';
           empty.textContent = 'Inga resultat än — bli först på listan!';
@@ -2171,7 +2183,7 @@
         }
 
         let highlightedOnce = false;
-        leaderboard.forEach((entry, idx) => {
+        sorted.forEach((entry, idx) => {
           const row = document.createElement('div');
           let isHighlight = false;
           if (highlightMatch) {
@@ -2182,7 +2194,7 @@
             } else if (!highlightedOnce) {
               if (highlightMatch.id && entry.id === highlightMatch.id) {
                 isHighlight = true;
-              } else if (!entry.id && entry.name === highlightMatch.name && Number(entry.score) === Number(highlightMatch.score)) {
+              } else if (!entry.id && entry.name === highlightMatch.name && entry.score === parseScore(highlightMatch.score)) {
                 isHighlight = true;
               }
               if (isHighlight) highlightedOnce = true;
@@ -2192,7 +2204,7 @@
 
           const rank = document.createElement('span');
           rank.className = 'lb-rank' + (idx < 3 ? ' r' + (idx + 1) : '');
-          rank.textContent = '#' + (idx + 1);
+          rank.textContent = (idx + 1) + '.';
 
           const nameEl = document.createElement('span');
           nameEl.className = 'lb-name';
@@ -2206,7 +2218,7 @@
 
           const scoreEl = document.createElement('span');
           scoreEl.className = 'lb-score';
-          scoreEl.textContent = Number(entry.score || 0).toLocaleString();
+          scoreEl.textContent = entry.score.toLocaleString();
 
           row.appendChild(rank);
           row.appendChild(nameEl);
@@ -2238,7 +2250,7 @@
           leaderboard = online
             .map((e) => ({
               name: String(e.name || 'Player').slice(0, 16),
-              score: Number(e.score) || 0,
+              score: parseScore(e.score),
               wave: e.wave ? Number(e.wave) : null
             }))
             .sort((a, b) => b.score - a.score)
