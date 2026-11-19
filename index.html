@@ -1823,17 +1823,18 @@
         const lvl = st ? st.level : 1;
         const dmgMult = 1 + (lvl - 1) * 0.25;
         const rofMult = 1 + (lvl - 1) * 0.12;
-        const reloadMult = 1 - (lvl - 1) * 0.1;
+        const reloadMult = Math.pow(0.92, lvl - 1);
         return {
           ...def,
           damage: Math.round(def.damage * dmgMult),
           fireRate: def.fireRate * rofMult,
-          reloadTime: Math.max(0.55, def.reloadTime * reloadMult)
+          reloadTime: Math.max(0.35, def.reloadTime * reloadMult)
         };
       }
 
       function getUpgradeCost(def, currentLevel) {
-        return Math.round((def.cost * 0.4 + 45) * currentLevel);
+        const base = def.cost * 0.4 + 45;
+        return Math.round(base * Math.pow(1.5, currentLevel - 1));
       }
 
       function showBanner(text, duration = 2.1) {
@@ -2405,7 +2406,6 @@
           const st = weaponStates[def.id];
           const equipped = player.weaponId === def.id;
           const upgCost = getUpgradeCost(def, st.level);
-          const canUpgrade = st.owned && st.level < 3;
 
           const card = document.createElement('div');
           card.className = 'weapon-card' + (st.owned ? ' owned' : '') + (equipped ? ' equipped' : '');
@@ -2477,25 +2477,20 @@
             const upgBtn = document.createElement('button');
             upgBtn.type = 'button';
             upgBtn.className = 'btn-sm btn-upgrade';
-            if (canUpgrade) {
-              upgBtn.textContent = `UPG ${upgCost}c`;
-              upgBtn.disabled = money < upgCost;
-              upgBtn.addEventListener('click', () => {
-                if (money < upgCost || st.level >= 3) return;
-                money -= upgCost;
-                saveCoins();
-                st.level++;
-                st.ammo = def.magSize;
-                st.reserve = Math.min(def.maxReserve, st.reserve + def.crateAmmo);
-                sound.playBuy();
-                rebuildWeaponBar();
-                syncHud();
-                renderShop();
-              });
-            } else {
-              upgBtn.textContent = 'MAX LV';
-              upgBtn.disabled = true;
-            }
+            upgBtn.textContent = `UPG ${upgCost}c`;
+            upgBtn.disabled = money < upgCost;
+            upgBtn.addEventListener('click', () => {
+              if (money < upgCost) return;
+              money -= upgCost;
+              saveCoins();
+              st.level++;
+              st.ammo = def.magSize;
+              st.reserve = Math.min(def.maxReserve, st.reserve + def.crateAmmo);
+              sound.playBuy();
+              rebuildWeaponBar();
+              syncHud();
+              renderShop();
+            });
             actions.appendChild(upgBtn);
           }
 
