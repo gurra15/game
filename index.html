@@ -478,12 +478,193 @@
     .card {
       width: 100%;
       max-width: 440px;
+      max-height: 92vh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
       background: rgba(13, 22, 40, 0.94);
       border: 1px solid rgba(56, 189, 248, 0.3);
       border-radius: 22px;
-      padding: 26px 22px;
+      padding: 22px 20px;
       text-align: center;
       box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    input {
+      user-select: text;
+      -webkit-user-select: text;
+      touch-action: manipulation;
+    }
+
+    .name-entry-wrap {
+      margin-bottom: 14px;
+      text-align: left;
+    }
+
+    .name-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #93c5fd;
+      margin-bottom: 6px;
+    }
+
+    .name-saved-tag {
+      font-size: 10px;
+      color: var(--success);
+      font-weight: 700;
+      text-transform: none;
+      letter-spacing: 0.02em;
+    }
+
+    .name-input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1.5px solid rgba(56, 189, 248, 0.35);
+      background: rgba(8, 13, 26, 0.88);
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 700;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .name-input::placeholder {
+      color: #64748b;
+      font-weight: 500;
+    }
+
+    .name-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.22);
+    }
+
+    .name-input.invalid {
+      border-color: var(--danger);
+      box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.25);
+      animation: inputShake 0.28s ease;
+    }
+
+    @keyframes inputShake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+
+    .name-error {
+      margin-top: 5px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #fb7185;
+      min-height: 16px;
+    }
+
+    .leaderboard-box {
+      margin-top: 14px;
+      background: rgba(8, 13, 26, 0.72);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 14px;
+      padding: 10px 12px;
+      text-align: left;
+    }
+
+    .lb-title {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .lb-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 148px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
+    }
+
+    .lb-empty {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+      padding: 8px 0;
+    }
+
+    .lb-row {
+      display: grid;
+      grid-template-columns: 26px 1fr auto auto;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 8px;
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.55);
+      font-size: 12px;
+    }
+
+    .lb-row.highlight {
+      background: rgba(56, 189, 248, 0.18);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+    }
+
+    .lb-rank {
+      font-weight: 900;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .lb-rank.r1 { color: #fbbf24; }
+    .lb-rank.r2 { color: #cbd5e1; }
+    .lb-rank.r3 { color: #fb923c; }
+
+    .lb-name {
+      font-weight: 700;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .lb-wave {
+      font-size: 10px;
+      font-weight: 700;
+      color: #7dd3fc;
+      background: rgba(56, 189, 248, 0.12);
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    .lb-score {
+      font-weight: 900;
+      color: var(--gold);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .btn-link {
+      margin-top: 10px;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 4px 8px;
+    }
+
+    .btn-link:hover {
+      color: var(--text);
     }
 
     .title-tag {
@@ -571,8 +752,14 @@
       filter: brightness(1.06);
     }
 
-    .btn-primary:active {
+    .btn-primary:active:not(:disabled) {
       transform: scale(0.97);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      box-shadow: none;
     }
 
     .high-score-line {
@@ -1023,8 +1210,23 @@
           <span><strong>WASD</strong> move &bull; <strong>Mouse</strong> shoot &bull; <strong>G / Right-Click</strong> grenade &bull; <strong>Space</strong> Nova Blast &bull; <strong>1-6</strong> switch &bull; <strong>B</strong> shop.</span>
         </div>
       </div>
+      <div class="name-entry-wrap">
+        <label class="name-label" for="playerNameInput">
+          <span>Player Name (Leaderboard)</span>
+          <span id="nameSavedTag" class="name-saved-tag"></span>
+        </label>
+        <input id="playerNameInput" class="name-input" type="text" maxlength="16" placeholder="Skriv ditt namn..." autocomplete="nickname" enterkeyhint="go" />
+        <div id="nameError" class="name-error"></div>
+      </div>
       <button id="playBtn" class="btn-primary" type="button">PLAY</button>
       <div class="high-score-line">High Score: <strong id="startHighScore">0</strong> &nbsp;&bull;&nbsp; Saved Coins: <strong id="startCoins">0</strong></div>
+      <div class="leaderboard-box">
+        <div class="lb-title">
+          <span>Leaderboard</span>
+          <span>Top 10</span>
+        </div>
+        <div id="startLeaderboard" class="lb-list"></div>
+      </div>
     </div>
   </div>
 
@@ -1033,7 +1235,7 @@
     <div class="card">
       <div id="newRecordBadge" class="new-record hidden">New High Score!</div>
       <h2 class="game-title" style="font-size: clamp(28px, 7vw, 38px);">GAME OVER</h2>
-      <p class="subtitle" style="margin-bottom: 10px;">You fell in the arena. Gear up and drop back in!</p>
+      <p id="gameOverSubtitle" class="subtitle" style="margin-bottom: 10px;">You fell in the arena. Gear up and drop back in!</p>
       <div class="results-grid">
         <div class="result-tile">
           <div class="result-label">Score</div>
@@ -1054,6 +1256,14 @@
       </div>
       <button id="playAgainBtn" class="btn-primary" type="button">PLAY AGAIN</button>
       <div class="high-score-line">Saved Coins: <strong id="finalCoins">0</strong></div>
+      <div class="leaderboard-box">
+        <div class="lb-title">
+          <span>Leaderboard</span>
+          <span>Top 10</span>
+        </div>
+        <div id="gameOverLeaderboard" class="lb-list"></div>
+      </div>
+      <button id="changeNameBtn" class="btn-link" type="button">Byt namn</button>
     </div>
   </div>
 
@@ -1102,6 +1312,8 @@
       const STORAGE_KEY_HIGHSCORE = 'neon_strike_highscore_v1';
       const STORAGE_KEY_MUTE = 'neon_strike_mute_v1';
       const STORAGE_KEY_COINS = 'neon_strike_coins_v1';
+      const STORAGE_KEY_PLAYER_NAME = 'neon_strike_player_name_v1';
+      const STORAGE_KEY_LEADERBOARD = 'neon_strike_leaderboard_v1';
 
       const WORLD_W = 1680;
       const WORLD_H = 1200;
@@ -1778,14 +1990,21 @@
       const playBtn = document.getElementById('playBtn');
       const startHighScoreEl = document.getElementById('startHighScore');
       const startCoinsEl = document.getElementById('startCoins');
+      const playerNameInput = document.getElementById('playerNameInput');
+      const nameSavedTag = document.getElementById('nameSavedTag');
+      const nameErrorEl = document.getElementById('nameError');
+      const startLeaderboardEl = document.getElementById('startLeaderboard');
 
       const gameOverOverlay = document.getElementById('gameOverOverlay');
       const newRecordBadge = document.getElementById('newRecordBadge');
+      const gameOverSubtitle = document.getElementById('gameOverSubtitle');
       const finalScoreEl = document.getElementById('finalScore');
       const finalHighScoreEl = document.getElementById('finalHighScore');
       const finalWaveEl = document.getElementById('finalWave');
       const finalKillsEl = document.getElementById('finalKills');
       const finalCoinsEl = document.getElementById('finalCoins');
+      const gameOverLeaderboardEl = document.getElementById('gameOverLeaderboard');
+      const changeNameBtn = document.getElementById('changeNameBtn');
       const playAgainBtn = document.getElementById('playAgainBtn');
 
       const shopOverlay = document.getElementById('shopOverlay');
@@ -1840,6 +2059,93 @@
         } catch (_) {}
         startCoinsEl.textContent = money.toLocaleString();
       }
+
+      let playerName = (localStorage.getItem(STORAGE_KEY_PLAYER_NAME) || '').trim().slice(0, 16);
+      if (playerName) {
+        playerNameInput.value = playerName;
+        nameSavedTag.textContent = 'Sparat från förra gången';
+      }
+
+      function savePlayerName(name) {
+        playerName = name.trim().slice(0, 16);
+        try {
+          localStorage.setItem(STORAGE_KEY_PLAYER_NAME, playerName);
+        } catch (_) {}
+        nameSavedTag.textContent = playerName ? 'Sparat på enheten' : '';
+      }
+
+      function loadLeaderboard() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY_LEADERBOARD);
+          const parsed = raw ? JSON.parse(raw) : [];
+          if (Array.isArray(parsed)) return parsed;
+        } catch (_) {}
+        return [];
+      }
+
+      function saveLeaderboard(entries) {
+        try {
+          localStorage.setItem(STORAGE_KEY_LEADERBOARD, JSON.stringify(entries));
+        } catch (_) {}
+      }
+
+      let leaderboard = loadLeaderboard();
+
+      function recordLeaderboardEntry(name, runScore, runWave, runKills) {
+        const entryId = Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+        const entry = {
+          id: entryId,
+          name: name || 'Player',
+          score: runScore,
+          wave: runWave,
+          kills: runKills
+        };
+        leaderboard.push(entry);
+        leaderboard.sort((a, b) => (b.score - a.score) || (b.wave - a.wave) || (b.kills - a.kills));
+        leaderboard = leaderboard.slice(0, 10);
+        saveLeaderboard(leaderboard);
+        return entryId;
+      }
+
+      function renderLeaderboard(containerEl, highlightId = null) {
+        containerEl.innerHTML = '';
+        if (!leaderboard.length) {
+          const empty = document.createElement('div');
+          empty.className = 'lb-empty';
+          empty.textContent = 'Inga resultat än — bli först på listan!';
+          containerEl.appendChild(empty);
+          return;
+        }
+
+        leaderboard.forEach((entry, idx) => {
+          const row = document.createElement('div');
+          row.className = 'lb-row' + (highlightId && entry.id === highlightId ? ' highlight' : '');
+
+          const rank = document.createElement('span');
+          rank.className = 'lb-rank' + (idx < 3 ? ' r' + (idx + 1) : '');
+          rank.textContent = '#' + (idx + 1);
+
+          const nameEl = document.createElement('span');
+          nameEl.className = 'lb-name';
+          nameEl.textContent = entry.name;
+
+          const waveEl = document.createElement('span');
+          waveEl.className = 'lb-wave';
+          waveEl.textContent = 'W' + entry.wave;
+
+          const scoreEl = document.createElement('span');
+          scoreEl.className = 'lb-score';
+          scoreEl.textContent = Number(entry.score || 0).toLocaleString();
+
+          row.appendChild(rank);
+          row.appendChild(nameEl);
+          row.appendChild(waveEl);
+          row.appendChild(scoreEl);
+          containerEl.appendChild(row);
+        });
+      }
+
+      renderLeaderboard(startLeaderboardEl);
       let kills = 0;
       let wave = 1;
       let waveEnemiesRemaining = 0;
@@ -2823,7 +3129,12 @@
         }
 
         saveCoins();
+        const entryId = recordLeaderboardEntry(playerName, score, wave, kills);
+        renderLeaderboard(startLeaderboardEl);
+        renderLeaderboard(gameOverLeaderboardEl, entryId);
+
         newRecordBadge.classList.toggle('hidden', !isRecord);
+        gameOverSubtitle.textContent = `${playerName} föll i arenan. Utrusta dig och hoppa in igen!`;
         finalScoreEl.textContent = score.toLocaleString();
         finalHighScoreEl.textContent = highScore.toLocaleString();
         startHighScoreEl.textContent = highScore.toLocaleString();
@@ -4461,6 +4772,13 @@
 
       // Desktop Keyboard
       window.addEventListener('keydown', (e) => {
+        if (document.activeElement && document.activeElement.tagName === 'INPUT') {
+          if (e.code === 'Enter') {
+            e.preventDefault();
+            startPlay();
+          }
+          return;
+        }
         sound.unlock();
         keys[e.code] = true;
 
@@ -4506,7 +4824,30 @@
       window.addEventListener('blur', clearInputs);
 
       // UI Buttons
+      playerNameInput.addEventListener('input', () => {
+        playerNameInput.classList.remove('invalid');
+        nameErrorEl.textContent = '';
+        const trimmed = playerNameInput.value.trim();
+        if (trimmed) {
+          savePlayerName(trimmed);
+        }
+      });
+
       function startPlay() {
+        const enteredName = (playerNameInput.value || playerName || '').trim();
+        if (!enteredName) {
+          nameErrorEl.textContent = 'Skriv in ditt namn för att spela och vara med på leaderboarden.';
+          playerNameInput.classList.remove('invalid');
+          void playerNameInput.offsetWidth;
+          playerNameInput.classList.add('invalid');
+          playerNameInput.focus();
+          return;
+        }
+        savePlayerName(enteredName);
+        playerNameInput.value = playerName;
+        playerNameInput.blur();
+        nameErrorEl.textContent = '';
+
         sound.unlock();
         sound.playUiClick();
         startOverlay.classList.add('hidden');
@@ -4519,6 +4860,18 @@
 
       playBtn.addEventListener('click', startPlay);
       playAgainBtn.addEventListener('click', startPlay);
+
+      changeNameBtn.addEventListener('click', () => {
+        sound.unlock();
+        sound.playUiClick();
+        gameOverOverlay.classList.add('hidden');
+        startOverlay.classList.remove('hidden');
+        gameState = 'START';
+        renderLeaderboard(startLeaderboardEl);
+        playerNameInput.value = playerName;
+        playerNameInput.focus();
+        playerNameInput.select();
+      });
 
       shopBtn.addEventListener('click', () => {
         sound.unlock();
